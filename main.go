@@ -11,6 +11,8 @@ import (
 
 type Stemmer func(input string, language string) (string, error)
 
+var setOfLanguages = []string{"english", "russian"}
+
 func main() {
 	inputString, err := getStringFromArguments()
 	if err != nil {
@@ -18,23 +20,31 @@ func main() {
 		return
 	}
 
-	var clearedStrings = clearInput(inputString)
-	fmt.Println(clearedStrings, len(clearedStrings))
+	var cleanInput = clearInput(inputString)
+	fmt.Println(cleanInput, len(cleanInput))
 
-	myStem := func(input string, language string) (string, error) {
+	snowballStemmer := func(input string, language string) (string, error) {
 		return snowball.Stem(input, language, false)
 	}
 
-	result := stemInput(myStem, clearedStrings)
+	result := stemInMultipleLanguages(snowballStemmer, cleanInput, setOfLanguages)
 	fmt.Println(result)
 }
 
-func stemInput(myStemmer Stemmer, input []string) []string {
+func stemInMultipleLanguages(myStemmer Stemmer, input []string, languages []string) []string {
+	var output []string
+	for _, language := range languages {
+		output = stemSingleLanguage(myStemmer, input, language)
+		input = output
+	}
+	return output
+}
+
+func stemSingleLanguage(myStemmer Stemmer, input []string, language string) []string {
 	res := make([]string, 0, len(input))
 	for _, str := range input {
-		newStr, err := myStemmer(str, "english")
+		newStr, err := myStemmer(str, language)
 		if err != nil {
-
 		} else {
 			res = append(res, newStr)
 		}
