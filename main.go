@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/bbalet/stopwords"
@@ -11,21 +12,12 @@ import (
 type Stemmer func(input string, language string) (string, error)
 
 func main() {
-	useString := flag.Bool("s", false, "get input string")
-	flag.Parse()
-
-	if !(*useString) {
-		fmt.Println("expected for -s flag")
+	inputString, err := getStringFromArguments()
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
-	inputString := flag.Args()
-	if len(inputString) == 0 {
-		fmt.Println("expected for non-empty string")
-		return
-	}
-
-	inputString = strings.Split(inputString[0], " ")
 	var clearedStrings = clearInput(inputString)
 	fmt.Println(clearedStrings, len(clearedStrings))
 
@@ -48,6 +40,23 @@ func stemInput(myStemmer Stemmer, input []string) []string {
 		}
 	}
 	return removeDuplicateStrings(res)
+}
+
+func getStringFromArguments() ([]string, error) {
+	useString := flag.Bool("s", false, "get input string")
+	flag.Parse()
+
+	if !(*useString) {
+		return []string{}, errors.New("expected for -s flag")
+	}
+
+	inputString := flag.Args()
+	if len(inputString) == 0 {
+		return []string{}, errors.New("expected for non-empty string")
+	}
+
+	// TODO: может ли быть больше 1 аргумента ? проверить случай с \n
+	return strings.Split(inputString[0], " "), nil
 }
 
 func clearInput(inputString []string) []string {
