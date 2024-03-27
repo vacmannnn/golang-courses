@@ -4,8 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/bbalet/stopwords"
 	"github.com/kljensen/snowball"
+	sw "github.com/toadharvard/stopwords-iso"
 	"strings"
 )
 
@@ -61,9 +61,10 @@ func getStringFromArguments() ([]string, error) {
 
 func clearInput(inputString []string) []string {
 	var clearedStrings []string
+	stopwordsMapping, _ := sw.NewStopwordsMapping()
 	for _, str := range inputString {
-		newStr := stopwords.CleanString(str, "en", false)
-		if newStr != " " {
+		newStr := stopwordsMapping.ClearString(str)
+		if newStr != "" {
 			clearedStrings = append(clearedStrings, newStr)
 		}
 	}
