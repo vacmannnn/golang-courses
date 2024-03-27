@@ -8,10 +8,11 @@ import (
 )
 
 func getStringFromArguments() ([]string, error) {
-	useString := flag.Bool("s", false, "get input string")
+	var useString bool
+	flag.BoolVar(&useString, "s", false, "get input string")
 	flag.Parse()
 
-	if !(*useString) {
+	if !useString {
 		return []string{}, errors.New("expected for -s flag")
 	}
 
@@ -24,7 +25,6 @@ func getStringFromArguments() ([]string, error) {
 	if len(inputString) > 1 {
 		return []string{}, errors.New("expected format is \"./myapp -s string_to_stem\"")
 	}
-
 	return strings.Split(inputString[0], " "), nil
 }
 
