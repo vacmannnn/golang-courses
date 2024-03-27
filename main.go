@@ -5,8 +5,6 @@ import (
 	"github.com/kljensen/snowball"
 )
 
-var setOfLanguages = []string{"english", "russian"}
-
 func main() {
 	inputString, err := getStringFromArguments()
 	if err != nil {
@@ -21,6 +19,7 @@ func main() {
 		return snowball.Stem(input, language, false)
 	}
 
+	var setOfLanguages = []string{"english", "russian"}
 	result := stemInMultipleLanguages(snowballStemmer, cleanInput, setOfLanguages)
 	fmt.Println(result)
 }
