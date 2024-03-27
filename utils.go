@@ -8,24 +8,17 @@ import (
 )
 
 func getStringFromArguments() ([]string, error) {
-	var useString bool
-	flag.BoolVar(&useString, "s", false, "get input string")
+	var inputString string
+	flag.StringVar(&inputString, "s", "", "get input string")
 	flag.Parse()
 
-	if !useString {
-		return []string{}, errors.New("expected for -s flag")
-	}
-
-	inputString := flag.Args()
-	if len(inputString) == 0 {
-		return []string{}, errors.New("expected for non-empty string")
-	}
+	otherInput := flag.Args()
 
 	// avoid case with other flags and strings
-	if len(inputString) > 1 {
-		return []string{}, errors.New("expected format is \"./myapp -s string_to_stem\"")
+	if len(otherInput) > 0 || inputString == "" {
+		return []string{}, errors.New("expected format is \"./myapp -s stringToStem\"")
 	}
-	return strings.Split(inputString[0], " "), nil
+	return strings.Split(inputString, " "), nil
 }
 
 // clearInputFromStopWords based on list of words from
