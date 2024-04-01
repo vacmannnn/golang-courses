@@ -4,8 +4,6 @@ github.com/kljensen/snowball v0.9.0 h1:OpXkQBcic6vcPG+dChOGLIA/GNuVg47tbbIJ2s7Ke
 github.com/kljensen/snowball v0.9.0/go.mod h1:OGo5gFWjaeXqCu4iIrMl5OYip9XUJHGOU5eSkPjVg2A=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/rookii/paicehusk v0.0.0-20130619054030-d62367ab30c1 h1:3tFIycnp5LEzHywmJ12FYj1Fb93fbCmCbcpEQt0KXVM=
-github.com/rookii/paicehusk v0.0.0-20130619054030-d62367ab30c1/go.mod h1:7i1pA1jWXu7ISx9BeaTSSf5Of06O0fS4O0heUvfKZ0k=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/tebeka/snowball v0.7.0 h1:4kx0zZ2Pg8r73RiY/CnGEydwN9hN4nG2HqSdH67zxcA=
