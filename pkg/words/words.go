@@ -1,18 +1,18 @@
-package main
+package words
 
 import (
 	"fmt"
 	"github.com/kljensen/snowball"
+	"strings"
 )
 
-func main() {
-	inputString, err := getStringFromArguments()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+// StemStringWithClearing
+// TODO: comments on public func
+func StemStringWithClearing(input string) []string {
 
-	var cleanInput = clearInputFromStopWords(inputString)
+	splittedString := strings.Split(input, " ")
+
+	var cleanInput = clearInputFromStopWords(splittedString)
 	fmt.Printf("cleared input -- %s\n", cleanInput)
 
 	snowballStemmer := func(input string, language string) (string, error) {
@@ -22,4 +22,6 @@ func main() {
 	var setOfLanguages = []string{"english", "russian"}
 	result := stemInMultipleLanguages(snowballStemmer, cleanInput, setOfLanguages)
 	fmt.Printf("stemmed and cleared input -- %s\n", result)
+
+	return result
 }

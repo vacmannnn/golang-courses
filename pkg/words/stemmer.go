@@ -1,4 +1,4 @@
-package main
+package words
 
 type stemmer func(input string, language string) (string, error)
 
