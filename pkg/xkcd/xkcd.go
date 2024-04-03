@@ -3,6 +3,7 @@ package xkcd
 import (
 	"courses/pkg/words"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -30,42 +31,67 @@ type comicsDescript struct {
 }
 
 // TODO: description
-func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) []byte {
-	// TODO: handle case if comicsNum < 1
+// описать случай, при которой error != nil, но при этом в byte был записан json, но там может быть кривой json
+func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byte, error) {
+	if comicsNum < 1 {
+		return nil, errors.New("number of comics should be greater than 0, default value is 1")
+	}
 	comicsToJSON := make(map[int]comicsDescript)
 	lastNum := 1
-	file, _ := os.ReadFile(dbFileName)
-	json.Unmarshal(file, &comicsToJSON)
-	for k := range comicsToJSON {
-		lastNum = max(lastNum, k)
+	file, err := os.ReadFile(dbFileName)
+	if err != nil {
+		return nil, err
 	}
-	// fmt.Println(comicsToJSON)
-	// log.Fatal("abc")
+	// TODO: what if empty file or file doesnt exist ?
+
+	// теоретически, если файл был кривой, то ничего страшного, перезапишем все
+	// TODO: найти случай, при котором вообще ошибка появляется
+	err = json.Unmarshal(file, &comicsToJSON)
+	if err != nil {
+		lastNum = 1
+	} else {
+		for k := range comicsToJSON {
+			lastNum = max(lastNum, k)
+		}
+	}
+
 	// last comicsInfo will be overwritten due possible corruption
-	// fmt.Println(lastNum, comicsNum)
 	for i := lastNum; i <= comicsNum; i++ {
 		c := http.Client{}
 		comicsURL := fmt.Sprintf("https://%s/%d/info.0.json", urlName, i)
 		log.Println(comicsURL)
 		resp, err := c.Get(comicsURL)
 		if err != nil {
-			log.Fatal(err)
+			bytes, _ := marshallComics(comicsToJSON)
+			return bytes, err
 		}
-		defer resp.Body.Close()
-		body, _ := io.ReadAll(resp.Body)
+		// defer in loop !! maybe close explicitly ?
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			bytes, _ := marshallComics(comicsToJSON)
+			return bytes, err
+		}
 		var myComics comicsInfo
 		err = json.Unmarshal(body, &myComics)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		keywords := words.StemStringWithClearing(myComics.Transcript)
 		comicsToJSON[myComics.Num] = comicsDescript{Url: myComics.ImgURL, Keywords: keywords}
 	}
-	// fmt.Println(comicsToJSON)
-	bytes, err := json.MarshalIndent(comicsToJSON, "", " ")
+
+	bytes, err := marshallComics(comicsToJSON)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return bytes
+	return bytes, nil
+}
+
+func marshallComics(comicsToJSON map[int]comicsDescript) ([]byte, error) {
+	bytes, err := json.MarshalIndent(comicsToJSON, "", " ")
+	return bytes, err
 }
