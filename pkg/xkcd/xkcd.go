@@ -39,13 +39,11 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 	comicsToJSON := make(map[int]comicsDescript)
 	lastNum := 1
 	file, err := database.ReadFromDB(dbFileName)
-	// если ошибка, то ничего страшного, т.к. все равно перезапишем весь файл потом, а сейчас чтение для попытки
-	// не делать скачку дважды
+	// it's ok if there was an error in file because we are going to create again and overwrite it
 	if err != nil {
 		log.Println(err)
 	}
 
-	// теоретически, если файл был кривой, то ничего страшного, перезапишем все
 	err = json.Unmarshal(file, &comicsToJSON)
 	// if case of any error in unmarshalling whole file will be overwritten due to corruption
 	if err != nil {
@@ -67,7 +65,7 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 			bytes, _ := marshallComics(comicsToJSON)
 			return bytes, err
 		}
-		// defer in loop !! maybe close explicitly ?
+		// defer in loop, maybe close explicitly ?
 		defer func(Body io.ReadCloser) {
 			_ = Body.Close()
 		}(resp.Body)
