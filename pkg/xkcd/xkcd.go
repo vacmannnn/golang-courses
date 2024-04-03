@@ -1,4 +1,4 @@
-package main
+package xkcd
 
 import (
 	"courses/pkg/words"
@@ -24,18 +24,29 @@ type comicsInfo struct {
 	Day        string `json:"day"`
 }
 
-const comicsNum = 10
-
 type comicsDescript struct {
 	Url      string   `json:"url"`
 	Keywords []string `json:"keywords"`
 }
 
-func main() {
-	comicsToJSON := make(map[int]comicsDescript, comicsNum)
-	for i := 1; i < comicsNum; i++ {
+// TODO: description
+func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) []byte {
+	// TODO: handle case if comicsNum < 1
+	f, err := os.OpenFile(dbFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	comicsToJSON := make(map[int]comicsDescript)
+	lastNum := 1
+	file, _ := os.ReadFile(dbFileName)
+	json.Unmarshal(file, &comicsToJSON)
+	for k := range comicsToJSON {
+		lastNum = max(lastNum, k)
+	}
+	// fmt.Println(comicsToJSON)
+	// log.Fatal("abc")
+	// last comicsInfo will be overwritten due possible corruption
+	// fmt.Println(lastNum, comicsNum)
+	for i := lastNum; i <= comicsNum; i++ {
 		c := http.Client{}
-		comicsURL := fmt.Sprintf("https://xkcd.com/%d/info.0.json", i)
+		comicsURL := fmt.Sprintf("https://%s/%d/info.0.json", urlName, i)
 		fmt.Println(comicsURL)
 		resp, err := c.Get(comicsURL)
 		if err != nil {
@@ -51,18 +62,20 @@ func main() {
 		keywords := words.StemStringWithClearing(myComics.Transcript)
 		comicsToJSON[myComics.Num] = comicsDescript{Url: myComics.ImgURL, Keywords: keywords}
 	}
-	fmt.Println(comicsToJSON)
+	// fmt.Println(comicsToJSON)
 	bytes, err := json.MarshalIndent(comicsToJSON, "", " ")
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(bytes)
-	fileName := "db.json"
-	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// fmt.Println(bytes)
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = f.Write(bytes)
+	err = os.WriteFile(dbFileName, bytes, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
