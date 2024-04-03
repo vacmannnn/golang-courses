@@ -10,5 +10,6 @@ github.com/tebeka/snowball v0.7.0 h1:4kx0zZ2Pg8r73RiY/CnGEydwN9hN4nG2HqSdH67zxcA
 github.com/tebeka/snowball v0.7.0/go.mod h1:L1/aiWo8AlJe9batdXfKIQeaxIYzlaTveYvGPuMu76Q=
 github.com/toadharvard/stopwords-iso v0.1.2 h1:y4ddNmueT4cdQ8W/CuPfLlfmnSujIoNCzI8X0QCmFiI=
 github.com/toadharvard/stopwords-iso v0.1.2/go.mod h1:r5uaUKI3yJDZ8XY5SbTnRVfo5lcEfwYLUHkdlgXc/Yk=
+gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
