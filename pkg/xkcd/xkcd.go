@@ -39,14 +39,17 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 	comicsToJSON := make(map[int]comicsDescript)
 	lastNum := 1
 	file, err := database.ReadFromDB(dbFileName)
+	// если ошибка, то ничего страшного, т.к. все равно перезапишем весь файл потом, а сейчас чтение для попытки
+	// не делать скачку дважды
 	if err != nil {
-		return nil, err
+		log.Println(err)
 	}
 
 	// теоретически, если файл был кривой, то ничего страшного, перезапишем все
 	// TODO: найти случай, при котором вообще ошибка появляется
 	err = json.Unmarshal(file, &comicsToJSON)
 	if err != nil {
+		log.Println(err)
 		lastNum = 1
 	} else {
 		for k := range comicsToJSON {
