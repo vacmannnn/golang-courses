@@ -51,5 +51,8 @@ func main() {
 			return
 		}
 	}
-	database.WriteToDB(conf.DBFile, bytes)
+	err = database.WriteToDB(conf.DBFile, bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

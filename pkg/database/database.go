@@ -1,15 +1,15 @@
 package database
 
 import (
-	"log"
 	"os"
 )
 
-func WriteToDB(dbFileName string, info []byte) {
-	// fmt.Println(bytes)
-	err := os.WriteFile(dbFileName, info, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+// TODO: description
+func WriteToDB(dbFileName string, info []byte) error {
+	return os.WriteFile(dbFileName, info, 0644)
+}
 
+func ReadFromDB(dbFileName string) ([]byte, error) {
+	// TODO: what if empty file or file doesnt exist ?
+	return os.ReadFile(dbFileName)
 }
