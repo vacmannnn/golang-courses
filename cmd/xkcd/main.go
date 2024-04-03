@@ -44,6 +44,12 @@ func main() {
 	flag.IntVar(&numOfComics, "n", 1, "number of comics to save")
 	flag.Parse()
 	// TODO: return error
-	bytes := xkcd.GetNComicsFromSite(conf.SourceUrl, conf.DBFile, numOfComics)
+	bytes, err := xkcd.GetNComicsFromSite(conf.SourceUrl, conf.DBFile, numOfComics)
+	if err != nil {
+		log.Println(err)
+		if bytes == nil {
+			return
+		}
+	}
 	database.WriteToDB(conf.DBFile, bytes)
 }
