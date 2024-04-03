@@ -32,7 +32,6 @@ type comicsDescript struct {
 // TODO: description
 func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) []byte {
 	// TODO: handle case if comicsNum < 1
-	f, err := os.OpenFile(dbFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	comicsToJSON := make(map[int]comicsDescript)
 	lastNum := 1
 	file, _ := os.ReadFile(dbFileName)
@@ -47,7 +46,7 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) []byte
 	for i := lastNum; i <= comicsNum; i++ {
 		c := http.Client{}
 		comicsURL := fmt.Sprintf("https://%s/%d/info.0.json", urlName, i)
-		fmt.Println(comicsURL)
+		log.Println(comicsURL)
 		resp, err := c.Get(comicsURL)
 		if err != nil {
 			log.Fatal(err)
@@ -67,20 +66,6 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) []byte
 	if err != nil {
 		log.Fatal(err)
 	}
-	// fmt.Println(bytes)
 
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = os.WriteFile(dbFileName, bytes, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = f.Close()
-	if err != nil {
-		return
-	}
+	return bytes
 }
