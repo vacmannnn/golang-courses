@@ -10,6 +10,5 @@ func WriteToDB(dbFileName string, info []byte) error {
 }
 
 func ReadFromDB(dbFileName string) ([]byte, error) {
-	// TODO: what if empty file or file doesnt exist ?
 	return os.ReadFile(dbFileName)
 }
