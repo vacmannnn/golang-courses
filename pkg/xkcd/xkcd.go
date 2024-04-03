@@ -46,8 +46,8 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 	}
 
 	// теоретически, если файл был кривой, то ничего страшного, перезапишем все
-	// TODO: найти случай, при котором вообще ошибка появляется
 	err = json.Unmarshal(file, &comicsToJSON)
+	// if case of any error in unmarshalling whole file will be overwritten due to corruption
 	if err != nil {
 		log.Println(err)
 		lastNum = 1
