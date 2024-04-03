@@ -60,7 +60,7 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 	// last comicsInfo will be overwritten due possible corruption
 	for i := lastNum; i <= comicsNum; i++ {
 		c := http.Client{}
-		comicsURL := fmt.Sprintf("https://%s/%d/info.0.json", urlName, i)
+		comicsURL := fmt.Sprintf("%s/%d/info.0.json", urlName, i)
 		log.Println(comicsURL)
 		resp, err := c.Get(comicsURL)
 		if err != nil {
