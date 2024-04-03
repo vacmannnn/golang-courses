@@ -1,5 +1,5 @@
 build:
-	@go build -o "input-stemmer" .
+	@go build -o "xkcd" cmd/xkcd/main.go
 
 clean:
-	rm input-stemmer
+	rm xkcd
