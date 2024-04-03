@@ -30,8 +30,9 @@ type comicsDescript struct {
 	Keywords []string `json:"keywords"`
 }
 
-// TODO: description
-// описать случай, при котором error != nil, но при этом в byte был записан json, но там может быть кривой json
+// GetNComicsFromSite gets url, name of existing DB file and number of comics to download. If db file doesn't exist it
+// possible to pass "". Function will log any non-critical error. Returned slice of byte may be not nil if some comics
+// downloaded.
 func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byte, error) {
 	if comicsNum < 1 {
 		return nil, errors.New("number of comics should be greater than 0, default value is 1")

@@ -4,7 +4,6 @@ import (
 	"os"
 )
 
-// TODO: description
 func WriteToDB(dbFileName string, info []byte) error {
 	return os.WriteFile(dbFileName, info, 0644)
 }
