@@ -39,7 +39,6 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	// fmt.Println(conf.SourceUrl, conf.DBFile, err)
 	var numOfComics int
 	flag.IntVar(&numOfComics, "n", 1, "number of comics to save")
 	flag.Parse()
