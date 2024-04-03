@@ -1,6 +1,7 @@
 package xkcd
 
 import (
+	"courses/pkg/database"
 	"courses/pkg/words"
 	"encoding/json"
 	"errors"
@@ -8,7 +9,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 )
 
 type comicsInfo struct {
@@ -31,18 +31,17 @@ type comicsDescript struct {
 }
 
 // TODO: description
-// описать случай, при которой error != nil, но при этом в byte был записан json, но там может быть кривой json
+// описать случай, при котором error != nil, но при этом в byte был записан json, но там может быть кривой json
 func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byte, error) {
 	if comicsNum < 1 {
 		return nil, errors.New("number of comics should be greater than 0, default value is 1")
 	}
 	comicsToJSON := make(map[int]comicsDescript)
 	lastNum := 1
-	file, err := os.ReadFile(dbFileName)
+	file, err := database.ReadFromDB(dbFileName)
 	if err != nil {
 		return nil, err
 	}
-	// TODO: what if empty file or file doesnt exist ?
 
 	// теоретически, если файл был кривой, то ничего страшного, перезапишем все
 	// TODO: найти случай, при котором вообще ошибка появляется
