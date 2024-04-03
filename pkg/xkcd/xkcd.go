@@ -39,14 +39,15 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 	}
 	comicsToJSON := make(map[int]comicsDescript)
 	lastNum := 1
-	file, err := database.ReadFromDB(dbFileName)
+
 	// it's ok if there was an error in file because we are going to create again and overwrite it
+	file, err := database.ReadFromDB(dbFileName)
 	if err != nil {
 		log.Println(err)
 	}
 
-	err = json.Unmarshal(file, &comicsToJSON)
 	// if case of any error in unmarshalling whole file will be overwritten due to corruption
+	err = json.Unmarshal(file, &comicsToJSON)
 	if err != nil {
 		log.Println(err)
 		lastNum = 1
@@ -58,28 +59,15 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 
 	// last comicsInfo will be overwritten due possible corruption
 	for i := lastNum; i <= comicsNum; i++ {
-		c := http.Client{}
 		comicsURL := fmt.Sprintf("%s/%d/info.0.json", urlName, i)
 		log.Println(comicsURL)
-		resp, err := c.Get(comicsURL)
+
+		myComics, err := getComicsFromURL(comicsURL)
 		if err != nil {
 			bytes, _ := marshallComics(comicsToJSON)
 			return bytes, err
 		}
-		// defer in loop, maybe close explicitly ?
-		defer func(Body io.ReadCloser) {
-			_ = Body.Close()
-		}(resp.Body)
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			bytes, _ := marshallComics(comicsToJSON)
-			return bytes, err
-		}
-		var myComics comicsInfo
-		err = json.Unmarshal(body, &myComics)
-		if err != nil {
-			return nil, err
-		}
+
 		keywords := words.StemStringWithClearing(myComics.Transcript)
 		comicsToJSON[myComics.Num] = comicsDescript{Url: myComics.ImgURL, Keywords: keywords}
 	}
@@ -90,6 +78,30 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 	}
 
 	return bytes, nil
+}
+
+func getComicsFromURL(comicsURL string) (comicsInfo, error) {
+	c := http.Client{}
+	resp, err := c.Get(comicsURL)
+	if err != nil {
+		return comicsInfo{}, err
+	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return comicsInfo{}, err
+	}
+
+	var myComics comicsInfo
+	err = json.Unmarshal(body, &myComics)
+	if err != nil {
+		return comicsInfo{}, err
+	}
+	
+	return myComics, nil
 }
 
 func marshallComics(comicsToJSON map[int]comicsDescript) ([]byte, error) {
