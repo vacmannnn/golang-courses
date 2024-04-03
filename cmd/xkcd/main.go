@@ -24,7 +24,6 @@ func newConfig(configPath string) (*Config, error) {
 	defer file.Close()
 
 	d := yaml.NewDecoder(file)
-
 	if err = d.Decode(&config); err != nil {
 		return nil, err
 	}
@@ -39,10 +38,11 @@ func main() {
 		log.Fatal(err)
 		return
 	}
+
 	var numOfComics int
 	flag.IntVar(&numOfComics, "n", 1, "number of comics to save")
 	flag.Parse()
-	// TODO: return error
+
 	bytes, err := xkcd.GetNComicsFromSite(conf.SourceUrl, conf.DBFile, numOfComics)
 	if err != nil {
 		log.Println(err)
@@ -50,8 +50,8 @@ func main() {
 			return
 		}
 	}
-	err = database.WriteToDB(conf.DBFile, bytes)
-	if err != nil {
+
+	if err = database.WriteToDB(conf.DBFile, bytes); err != nil {
 		log.Fatal(err)
 	}
 }

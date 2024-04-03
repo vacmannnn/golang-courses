@@ -31,14 +31,13 @@ type comicsDescript struct {
 }
 
 // GetNComicsFromSite gets url, name of existing DB file and number of comics to download. If db file doesn't exist it
-// possible to pass "". Function will log any non-critical error. Returned slice of byte may be not nil if some comics
-// downloaded.
+// possible to pass "". Num of comics should be greater than 0. Function will log any non-critical error.
+// Returned slice of byte may be not nil if some comics downloaded.
 func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byte, error) {
 	if comicsNum < 1 {
 		return nil, errors.New("number of comics should be greater than 0, default value is 1")
 	}
 	comicsToJSON := make(map[int]comicsDescript)
-	lastNum := 1
 
 	// it's ok if there was an error in file because we are going to create again and overwrite it
 	file, err := database.ReadFromDB(dbFileName)
@@ -48,17 +47,18 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 
 	// if case of any error in unmarshalling whole file will be overwritten due to corruption
 	err = json.Unmarshal(file, &comicsToJSON)
+	lastComicsNum := 1
 	if err != nil {
 		log.Println(err)
-		lastNum = 1
+		lastComicsNum = 1
 	} else {
 		for k := range comicsToJSON {
-			lastNum = max(lastNum, k)
+			lastComicsNum = max(lastComicsNum, k)
 		}
 	}
 
 	// last comicsInfo will be overwritten due possible corruption
-	for i := lastNum; i <= comicsNum; i++ {
+	for i := lastComicsNum; i <= comicsNum; i++ {
 		comicsURL := fmt.Sprintf("%s/%d/info.0.json", urlName, i)
 		log.Println(comicsURL)
 
@@ -100,7 +100,7 @@ func getComicsFromURL(comicsURL string) (comicsInfo, error) {
 	if err != nil {
 		return comicsInfo{}, err
 	}
-	
+
 	return myComics, nil
 }
 

@@ -4,21 +4,6 @@ import (
 	sw "github.com/toadharvard/stopwords-iso"
 )
 
-// currently unused
-// func getStringFromArguments() ([]string, error) {
-// 	var inputString string
-// 	flag.StringVar(&inputString, "s", "", "get input string")
-// 	flag.Parse()
-//
-// 	otherInput := flag.Args()
-//
-// 	// avoid case with other flags and strings
-// 	if len(otherInput) > 0 || inputString == "" {
-// 		return []string{}, errors.New("expected format is \"./myapp -s stringToStem\"")
-// 	}
-// 	return strings.Split(inputString, " "), nil
-// }
-
 // clearInputFromStopWords based on list of words from
 // https://github.com/toadharvard/stopwords-iso/
 //
