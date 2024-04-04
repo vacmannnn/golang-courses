@@ -3,7 +3,9 @@ package main
 import (
 	"courses/pkg/database"
 	"courses/pkg/xkcd"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -32,22 +34,37 @@ func newConfig(configPath string) (*Config, error) {
 }
 
 func main() {
-	// cross-platforming ? will it work well in each platform ?
-	conf, err := newConfig("config.yaml")
+	var numOfComics int
+	flag.IntVar(&numOfComics, "n", 1, "number of comics to save")
+	var configPath string
+	flag.StringVar(&configPath, "config", "config.yaml", "path to config.yml file")
+	var showDownloadedComics bool
+	flag.BoolVar(&showDownloadedComics, "o", false, "show info about downloaded comics")
+	flag.Parse()
+
+	conf, err := newConfig(configPath)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-
-	var numOfComics int
-	flag.IntVar(&numOfComics, "n", 1, "number of comics to save")
-	flag.Parse()
 
 	bytes, err := xkcd.GetNComicsFromSite(conf.SourceUrl, conf.DBFile, numOfComics)
 	if err != nil {
 		log.Println(err)
 		if bytes == nil {
 			return
+		}
+	}
+
+	if bytes != nil && showDownloadedComics && numOfComics > 0 {
+		var comicsToJSON map[int]xkcd.ComicsDescript
+		err = json.Unmarshal(bytes, &comicsToJSON)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		for i := 1; i <= numOfComics; i++ {
+			fmt.Printf("id - %d, keywords - %s, url - %s\n", i, comicsToJSON[i].Keywords, comicsToJSON[i].Url)
 		}
 	}
 
