@@ -63,7 +63,7 @@ func main() {
 			log.Println(err)
 			return
 		}
-		if numOfComics != -1 {
+		if numOfComics == -1 {
 			for i, comics := range comicsToJSON {
 				fmt.Printf("id - %d, keywords - %s, url - %s\n", i, comics.Keywords, comics.Url)
 			}
