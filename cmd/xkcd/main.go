@@ -48,7 +48,7 @@ func main() {
 		return
 	}
 
-	bytes, err := xkcd.GetNComicsFromSite(conf.SourceUrl, conf.DBFile)
+	bytes, err := xkcd.GetComicsFromSite(conf.SourceUrl, conf.DBFile)
 	if err != nil {
 		log.Println(err)
 		if bytes == nil {
