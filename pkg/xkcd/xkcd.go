@@ -26,7 +26,7 @@ type comicsInfo struct {
 	Day        string `json:"day"`
 }
 
-type comicsDescript struct {
+type ComicsDescript struct {
 	Url      string   `json:"url"`
 	Keywords []string `json:"keywords"`
 }
@@ -38,7 +38,7 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 	if comicsNum < 1 {
 		return nil, errors.New("number of comics should be greater than 0, default value is 1")
 	}
-	comicsToJSON := make(map[int]comicsDescript, comicsNum)
+	comicsToJSON := make(map[int]ComicsDescript, comicsNum)
 	comicsMutex := sync.RWMutex{}
 
 	// it's ok if there was an error in file because we are going to create again and overwrite it
@@ -76,7 +76,7 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 
 			keywords := words.StemStringWithClearing(myComics.Transcript)
 			comicsMutex.Lock()
-			comicsToJSON[comicsID] = comicsDescript{Url: myComics.ImgURL, Keywords: keywords}
+			comicsToJSON[comicsID] = ComicsDescript{Url: myComics.ImgURL, Keywords: keywords}
 			comicsMutex.Unlock()
 			wg.Done()
 		}(i)
@@ -119,7 +119,7 @@ func getComicsFromURL(comicsURL string) (comicsInfo, error) {
 	return myComics, nil
 }
 
-func marshallComics(comicsToJSON map[int]comicsDescript) ([]byte, error) {
+func marshallComics(comicsToJSON map[int]ComicsDescript) ([]byte, error) {
 	bytes, err := json.MarshalIndent(comicsToJSON, "", " ")
 	return bytes, err
 }
