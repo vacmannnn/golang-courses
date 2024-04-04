@@ -35,7 +35,7 @@ func newConfig(configPath string) (*Config, error) {
 
 func main() {
 	var numOfComics int
-	flag.IntVar(&numOfComics, "n", 1, "number of comics to save")
+	flag.IntVar(&numOfComics, "n", -1, "number of comics to save")
 	var configPath string
 	flag.StringVar(&configPath, "config", "config.yaml", "path to config.yml file")
 	var showDownloadedComics bool
@@ -48,7 +48,7 @@ func main() {
 		return
 	}
 
-	bytes, err := xkcd.GetNComicsFromSite(conf.SourceUrl, conf.DBFile, numOfComics)
+	bytes, err := xkcd.GetNComicsFromSite(conf.SourceUrl, conf.DBFile)
 	if err != nil {
 		log.Println(err)
 		if bytes == nil {
@@ -56,15 +56,22 @@ func main() {
 		}
 	}
 
-	if bytes != nil && showDownloadedComics && numOfComics > 0 {
+	if bytes != nil && showDownloadedComics {
 		var comicsToJSON map[int]xkcd.ComicsDescript
 		err = json.Unmarshal(bytes, &comicsToJSON)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		for i := 1; i <= numOfComics; i++ {
-			fmt.Printf("id - %d, keywords - %s, url - %s\n", i, comicsToJSON[i].Keywords, comicsToJSON[i].Url)
+		if numOfComics != -1 {
+			for i, comics := range comicsToJSON {
+				fmt.Printf("id - %d, keywords - %s, url - %s\n", i, comics.Keywords, comics.Url)
+			}
+		} else {
+			for i := 1; i <= numOfComics; i++ {
+				fmt.Printf("id - %d, keywords - %s, url - %s\n", i, comicsToJSON[i].Keywords,
+					comicsToJSON[i].Url)
+			}
 		}
 	}
 
