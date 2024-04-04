@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sync"
 )
 
 type comicsInfo struct {
@@ -37,7 +38,8 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 	if comicsNum < 1 {
 		return nil, errors.New("number of comics should be greater than 0, default value is 1")
 	}
-	comicsToJSON := make(map[int]comicsDescript)
+	comicsToJSON := make(map[int]comicsDescript, comicsNum)
+	comicsMutex := sync.RWMutex{}
 
 	// it's ok if there was an error in file because we are going to create again and overwrite it
 	file, err := database.ReadFromDB(dbFileName)
@@ -57,21 +59,34 @@ func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byt
 		}
 	}
 
+	wg := sync.WaitGroup{}
+	var curGoroutines int
 	// last comicsInfo will be overwritten due possible corruption
 	for i := lastComicsNum; i <= comicsNum; i++ {
-		comicsURL := fmt.Sprintf("%s/%d/info.0.json", urlName, i)
-		log.Println(comicsURL)
+		wg.Add(1)
+		curGoroutines++
+		go func(comicsID int) {
+			comicsURL := fmt.Sprintf("%s/%d/info.0.json", urlName, comicsID)
+			log.Println(comicsURL)
 
-		myComics, err := getComicsFromURL(comicsURL)
-		if err != nil {
-			bytes, _ := marshallComics(comicsToJSON)
-			return bytes, err
+			myComics, err := getComicsFromURL(comicsURL)
+			if err != nil {
+				log.Printf("%s, comicsID is - %d", err, comicsID)
+			}
+
+			keywords := words.StemStringWithClearing(myComics.Transcript)
+			comicsMutex.Lock()
+			comicsToJSON[comicsID] = comicsDescript{Url: myComics.ImgURL, Keywords: keywords}
+			comicsMutex.Unlock()
+			wg.Done()
+		}(i)
+
+		// Need to download step by step due possible heavy load on the network
+		if curGoroutines%500 == 0 {
+			wg.Wait()
 		}
-
-		keywords := words.StemStringWithClearing(myComics.Transcript)
-		comicsToJSON[myComics.Num] = comicsDescript{Url: myComics.ImgURL, Keywords: keywords}
 	}
-
+	wg.Wait()
 	bytes, err := marshallComics(comicsToJSON)
 	if err != nil {
 		return nil, err
