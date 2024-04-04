@@ -33,7 +33,7 @@ func newConfig(configPath string) (*Config, error) {
 
 func main() {
 	// cross-platforming ? will it work well in each platform ?
-	conf, err := newConfig("../../config.yaml")
+	conf, err := newConfig("config.yaml")
 	if err != nil {
 		log.Fatal(err)
 		return
