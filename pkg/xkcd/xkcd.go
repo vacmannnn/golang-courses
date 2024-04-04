@@ -4,7 +4,6 @@ import (
 	"courses/pkg/database"
 	"courses/pkg/words"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -31,13 +30,16 @@ type ComicsDescript struct {
 	Keywords []string `json:"keywords"`
 }
 
-// GetNComicsFromSite gets url, name of existing DB file and number of comics to download. If db file doesn't exist it
+// GetComicsFromSite gets url, name of existing DB file and number of comics to download. If db file doesn't exist it
 // possible to pass "". Num of comics should be greater than 0. Function will log any non-critical error.
 // Returned slice of byte may be not nil if some comics downloaded.
-func GetNComicsFromSite(urlName string, dbFileName string, comicsNum int) ([]byte, error) {
-	if comicsNum < 1 {
-		return nil, errors.New("number of comics should be greater than 0, default value is 1")
+func GetComicsFromSite(urlName string, dbFileName string) ([]byte, error) {
+	latestComics, err := getComicsFromURL("https://xkcd.com/info.0.json")
+	if err != nil {
+		return nil, err
 	}
+	comicsNum := latestComics.Num
+
 	comicsToJSON := make(map[int]ComicsDescript, comicsNum)
 	comicsMutex := sync.RWMutex{}
 
