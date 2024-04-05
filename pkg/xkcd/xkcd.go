@@ -1,13 +1,13 @@
 package xkcd
 
 import (
-	"courses/pkg/database"
-	"courses/pkg/words"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -30,41 +30,30 @@ type ComicsDescript struct {
 	Keywords []string `json:"keywords"`
 }
 
-// GetComicsFromSite gets url, name of existing DB file and number of comics to download. If db file doesn't exist it
-// possible to pass "". Num of comics should be greater than 0. Function will log any non-critical error.
-// Returned slice of byte may be not nil if some comics downloaded.
-func GetComicsFromSite(urlName string, dbFileName string) ([]byte, error) {
-	latestComics, err := getComicsFromURL("https://xkcd.com/info.0.json")
-	if err != nil {
-		return nil, err
-	}
-	comicsNum := latestComics.Num
-
-	comicsToJSON := make(map[int]ComicsDescript, comicsNum)
-	comicsMutex := sync.RWMutex{}
-
-	// it's ok if there was an error in file because we are going to create again and overwrite it
-	file, err := database.ReadFromDB(dbFileName)
-	if err != nil {
-		log.Println(err)
-	}
-
-	// if case of any error in unmarshalling whole file will be overwritten due to corruption
-	err = json.Unmarshal(file, &comicsToJSON)
-	lastComicsNum := 1
-	if err != nil {
-		log.Println(err)
-		lastComicsNum = 1
-	} else {
-		for k := range comicsToJSON {
-			lastComicsNum = max(lastComicsNum, k)
+// GetComicsFromSite gets url, id of first comics to download and last. If any value is not greater than 0
+// it will be reassigned to 1 in case of first comics and to latest comics at whole cite in case of last id.
+// Function will log any non-critical error.
+func GetComicsFromSite(urlName string, startComicsId, endComicsId int) (map[int]ComicsDescript, error) {
+	if endComicsId < 1 {
+		latestComics, err := getComicsFromURL("https://xkcd.com/info.0.json")
+		if err != nil {
+			return nil, err
 		}
+		endComicsId = latestComics.Num
+	}
+	if startComicsId < 1 {
+		startComicsId = 1
+	}
+	if endComicsId < startComicsId {
+		return nil, errors.New("id of last comics to download should be lower than first comics to download")
 	}
 
-	wg := sync.WaitGroup{}
 	var curGoroutines int
-	// last comicsInfo will be overwritten due possible corruption
-	for i := lastComicsNum; i <= comicsNum; i++ {
+	var wg sync.WaitGroup
+	var comicsMutex sync.Mutex
+	comicsToJSON := make(map[int]ComicsDescript, endComicsId-startComicsId)
+
+	for i := startComicsId; i <= endComicsId; i++ {
 		wg.Add(1)
 		curGoroutines++
 		go func(comicsID int) {
@@ -76,7 +65,7 @@ func GetComicsFromSite(urlName string, dbFileName string) ([]byte, error) {
 				log.Printf("%s, comicsID is - %d", err, comicsID)
 			}
 
-			keywords := words.StemStringWithClearing(myComics.Transcript)
+			keywords := strings.Split(myComics.Transcript, " ")
 			comicsMutex.Lock()
 			comicsToJSON[comicsID] = ComicsDescript{Url: myComics.ImgURL, Keywords: keywords}
 			comicsMutex.Unlock()
@@ -89,12 +78,8 @@ func GetComicsFromSite(urlName string, dbFileName string) ([]byte, error) {
 		}
 	}
 	wg.Wait()
-	bytes, err := marshallComics(comicsToJSON)
-	if err != nil {
-		return nil, err
-	}
 
-	return bytes, nil
+	return comicsToJSON, nil
 }
 
 func getComicsFromURL(comicsURL string) (comicsInfo, error) {
@@ -119,9 +104,4 @@ func getComicsFromURL(comicsURL string) (comicsInfo, error) {
 	}
 
 	return myComics, nil
-}
-
-func marshallComics(comicsToJSON map[int]ComicsDescript) ([]byte, error) {
-	bytes, err := json.MarshalIndent(comicsToJSON, "", " ")
-	return bytes, err
 }
