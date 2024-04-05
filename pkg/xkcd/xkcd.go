@@ -50,32 +50,36 @@ func GetComicsFromSite(urlName string, startComicsId, endComicsId int) (map[int]
 
 	var curGoroutines int
 	var wg sync.WaitGroup
-	var comicsMutex sync.Mutex
+	comicsChan := make(chan comicsInfo)
 	comicsToJSON := make(map[int]ComicsDescript, endComicsId-startComicsId)
 
-	for i := startComicsId; i <= endComicsId; i++ {
-		wg.Add(1)
-		curGoroutines++
-		go func(comicsID int) {
-			comicsURL := fmt.Sprintf("%s/%d/info.0.json", urlName, comicsID)
-			log.Println(comicsURL)
+	go func() {
+		for i := startComicsId; i <= endComicsId; i++ {
+			wg.Add(1)
+			curGoroutines++
+			go func(comicsID int) {
+				comicsURL := fmt.Sprintf("%s/%d/info.0.json", urlName, comicsID)
+				log.Println(comicsURL)
 
-			myComics, err := getComicsFromURL(comicsURL)
-			if err != nil {
-				log.Printf("%s, comicsID is - %d", err, comicsID)
+				myComics, err := getComicsFromURL(comicsURL)
+				if err != nil {
+					log.Printf("%s, comicsID is - %d", err, comicsID)
+				}
+
+				comicsChan <- myComics
+				wg.Done()
+			}(i)
+
+			// Need to download step by step due possible heavy load on the network
+			if curGoroutines%500 == 0 {
+				wg.Wait()
 			}
-
-			keywords := strings.Split(myComics.Transcript, " ")
-			comicsMutex.Lock()
-			comicsToJSON[comicsID] = ComicsDescript{Url: myComics.ImgURL, Keywords: keywords}
-			comicsMutex.Unlock()
-			wg.Done()
-		}(i)
-
-		// Need to download step by step due possible heavy load on the network
-		if curGoroutines%500 == 0 {
-			wg.Wait()
 		}
+	}()
+	for i := startComicsId; i <= endComicsId; i++ {
+		comicsOwner := <-comicsChan
+		keywords := strings.Split(comicsOwner.Transcript, " ")
+		comicsToJSON[comicsOwner.Num] = ComicsDescript{Url: comicsOwner.ImgURL, Keywords: keywords}
 	}
 	wg.Wait()
 
