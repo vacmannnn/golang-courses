@@ -46,7 +46,7 @@ func main() {
 	flag.BoolVar(&showDownloadedComics, "o", false, "show info about downloaded comics")
 	flag.Parse()
 
-	// get comfig
+	// get config
 	conf, err := newConfig(configPath)
 	if err != nil {
 		log.Fatal(err)
