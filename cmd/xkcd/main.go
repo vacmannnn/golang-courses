@@ -2,6 +2,7 @@ package main
 
 import (
 	"courses/pkg/database"
+	"courses/pkg/words"
 	"courses/pkg/xkcd"
 	"encoding/json"
 	"flag"
@@ -23,7 +24,9 @@ func newConfig(configPath string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
 
 	d := yaml.NewDecoder(file)
 	if err = d.Decode(&config); err != nil {
@@ -34,6 +37,7 @@ func newConfig(configPath string) (*Config, error) {
 }
 
 func main() {
+	// parse flags
 	var numOfComics int
 	flag.IntVar(&numOfComics, "n", -1, "number of comics to save")
 	var configPath string
@@ -42,27 +46,50 @@ func main() {
 	flag.BoolVar(&showDownloadedComics, "o", false, "show info about downloaded comics")
 	flag.Parse()
 
+	// get comfig
 	conf, err := newConfig(configPath)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
 
-	bytes, err := xkcd.GetComicsFromSite(conf.SourceUrl, conf.DBFile)
+	// read existed json to simplify downloading
+	comicsToJSON := make(map[int]xkcd.ComicsDescript)
+
+	// it's ok if there was an error in file because we are going to create again and overwrite it
+	file, err := database.ReadFromDB(conf.DBFile)
 	if err != nil {
 		log.Println(err)
-		if bytes == nil {
-			return
+	}
+
+	// if case of any error in unmarshalling whole file will be overwritten due to corruption
+	err = json.Unmarshal(file, &comicsToJSON)
+	lastComicsNum := 1
+	if err != nil {
+		log.Println(err)
+		lastComicsNum = 1
+	} else {
+		for k := range comicsToJSON {
+			lastComicsNum = max(lastComicsNum, k)
 		}
 	}
 
-	if bytes != nil && showDownloadedComics {
-		var comicsToJSON map[int]xkcd.ComicsDescript
-		err = json.Unmarshal(bytes, &comicsToJSON)
-		if err != nil {
-			log.Println(err)
+	// download needed
+	fmt.Println(lastComicsNum, numOfComics)
+	comics, err := xkcd.GetComicsFromSite(conf.SourceUrl, lastComicsNum, numOfComics)
+	if err != nil {
+		log.Println(err)
+		if comics == nil {
 			return
 		}
+	}
+	for k, v := range comics {
+		v.Keywords = words.StemStringWithClearing(v.Keywords)
+		comicsToJSON[k] = v
+	}
+
+	// show if needed
+	if showDownloadedComics {
 		if numOfComics == -1 {
 			for i, comics := range comicsToJSON {
 				fmt.Printf("id - %d, keywords - %s, url - %s\n", i, comics.Keywords, comics.Url)
@@ -75,7 +102,18 @@ func main() {
 		}
 	}
 
+	// load to JSON
+	bytes, err := marshallComics(comicsToJSON)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	if err = database.WriteToDB(conf.DBFile, bytes); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func marshallComics(comicsToJSON map[int]xkcd.ComicsDescript) ([]byte, error) {
+	return json.MarshalIndent(comicsToJSON, "", " ")
 }
