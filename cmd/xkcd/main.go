@@ -55,9 +55,10 @@ func main() {
 
 	// read existed json to simplify downloading
 	comicsToJSON := make(map[int]xkcd.ComicsDescript)
+	myDB := database.NewDB(conf.DBFile)
 
 	// it's ok if there was an error in file because we are going to create again and overwrite it
-	file, err := database.ReadFromDB(conf.DBFile)
+	file, err := myDB.Read()
 	if err != nil {
 		log.Println(err)
 	}
@@ -109,7 +110,7 @@ func main() {
 		return
 	}
 
-	if err = database.WriteToDB(conf.DBFile, bytes); err != nil {
+	if err = myDB.Write(bytes); err != nil {
 		log.Fatal(err)
 	}
 }
