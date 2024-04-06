@@ -2,7 +2,6 @@ package xkcd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -42,29 +41,27 @@ func NewComicsDownloader(comicsURL string) ComicsDownloader {
 // GetComicsFromSite gets id of first comics to download and last. If any value is not greater than 0
 // it will be reassigned to 1 in case of first comics and to latest comics at whole cite in case of last id.
 // Function will log any non-critical error.
-func (c ComicsDownloader) GetComicsFromSite(startComicsId, endComicsId int) (map[int]ComicsDescript, error) {
-	if endComicsId < 1 {
+func (c ComicsDownloader) GetComicsFromSite(comicsID []int) (map[int]ComicsDescript, error) {
+	var latestComicsID int
+	if len(comicsID) == 0 {
 		comicsURL := fmt.Sprintf("%s/info.0.json", c.comicsURL)
 		latestComics, err := c.getComicsFromURL(comicsURL)
 		if err != nil {
 			return nil, err
 		}
-		endComicsId = latestComics.Num
-	}
-	if startComicsId < 1 {
-		startComicsId = 1
-	}
-	if endComicsId < startComicsId {
-		return nil, errors.New("id of last comics to download should be lower than first comics to download")
+		latestComicsID = latestComics.Num
+		for i := 1; i <= latestComicsID; i++ {
+			comicsID = append(comicsID, i)
+		}
 	}
 
 	var curGoroutines int
 	var wg sync.WaitGroup
 	comicsChan := make(chan comicsInfo)
-	comicsToJSON := make(map[int]ComicsDescript, endComicsId-startComicsId)
+	comicsToJSON := make(map[int]ComicsDescript, len(comicsID))
 
 	go func() {
-		for i := startComicsId; i <= endComicsId; i++ {
+		for _, i := range comicsID {
 			wg.Add(1)
 			curGoroutines++
 			go func(comicsID int) {
@@ -86,7 +83,7 @@ func (c ComicsDownloader) GetComicsFromSite(startComicsId, endComicsId int) (map
 			}
 		}
 	}()
-	for i := startComicsId; i <= endComicsId; i++ {
+	for range comicsID {
 		comicsOwner := <-comicsChan
 		keywords := strings.Split(comicsOwner.Transcript, " ")
 		comicsToJSON[comicsOwner.Num] = ComicsDescript{Url: comicsOwner.ImgURL, Keywords: keywords}

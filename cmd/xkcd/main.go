@@ -65,19 +65,36 @@ func main() {
 
 	// if case of any error in unmarshalling whole file will be overwritten due to corruption
 	err = json.Unmarshal(file, &comicsToJSON)
-	lastComicsNum := 1
+	lastDownloadedComicsID := 1
+	var indicesSlice []int
 	if err != nil {
 		log.Println(err)
-		lastComicsNum = 1
+		lastDownloadedComicsID = -1
 	} else {
-		for k := range comicsToJSON {
-			lastComicsNum = max(lastComicsNum, k)
+		for k, v := range comicsToJSON {
+			// newest comics has no keywords
+			if v.Keywords == nil && (k < numOfComics || numOfComics == -1) {
+				indicesSlice = append(indicesSlice, k)
+			}
+			lastDownloadedComicsID = max(lastDownloadedComicsID, k)
 		}
 	}
 
 	// download needed
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
-	comics, err := downloader.GetComicsFromSite(lastComicsNum, numOfComics)
+	var comics map[int]xkcd.ComicsDescript
+
+	// case when there was no DB and we need to download all
+	if len(indicesSlice) == 0 && lastDownloadedComicsID == -1 {
+		comics, err = downloader.GetComicsFromSite([]int{})
+	} else {
+		for i := lastDownloadedComicsID; i <= numOfComics; i++ {
+			indicesSlice = append(indicesSlice, i)
+		}
+		if len(indicesSlice) != 0 && (lastDownloadedComicsID <= numOfComics || numOfComics == -1) {
+			comics, err = downloader.GetComicsFromSite(indicesSlice)
+		}
+	}
 	if err != nil {
 		log.Println(err)
 		if comics == nil {
@@ -92,14 +109,11 @@ func main() {
 	// show if needed
 	if showDownloadedComics {
 		if numOfComics == -1 {
-			for i, comics := range comicsToJSON {
-				fmt.Printf("id - %d, keywords - %s, url - %s\n", i, comics.Keywords, comics.Url)
-			}
-		} else {
-			for i := 1; i <= numOfComics; i++ {
-				fmt.Printf("id - %d, keywords - %s, url - %s\n", i, comicsToJSON[i].Keywords,
-					comicsToJSON[i].Url)
-			}
+			numOfComics = lastDownloadedComicsID
+		}
+		for i := 1; i <= numOfComics; i++ {
+			fmt.Printf("id - %d, keywords - %s, url - %s\n", i, comicsToJSON[i].Keywords,
+				comicsToJSON[i].Url)
 		}
 	}
 
