@@ -75,8 +75,8 @@ func main() {
 	}
 
 	// download needed
-	fmt.Println(lastComicsNum, numOfComics)
-	comics, err := xkcd.GetComicsFromSite(conf.SourceUrl, lastComicsNum, numOfComics)
+	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
+	comics, err := downloader.GetComicsFromSite(lastComicsNum, numOfComics)
 	if err != nil {
 		log.Println(err)
 		if comics == nil {
