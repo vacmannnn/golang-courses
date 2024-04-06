@@ -30,12 +30,22 @@ type ComicsDescript struct {
 	Keywords []string `json:"keywords"`
 }
 
-// GetComicsFromSite gets url, id of first comics to download and last. If any value is not greater than 0
+type ComicsDownloader struct {
+	comicsURL string
+}
+
+// NewComicsDownloader sets link to source cite with comics
+func NewComicsDownloader(comicsURL string) ComicsDownloader {
+	return ComicsDownloader{comicsURL: comicsURL}
+}
+
+// GetComicsFromSite gets id of first comics to download and last. If any value is not greater than 0
 // it will be reassigned to 1 in case of first comics and to latest comics at whole cite in case of last id.
 // Function will log any non-critical error.
-func GetComicsFromSite(urlName string, startComicsId, endComicsId int) (map[int]ComicsDescript, error) {
+func (c ComicsDownloader) GetComicsFromSite(startComicsId, endComicsId int) (map[int]ComicsDescript, error) {
 	if endComicsId < 1 {
-		latestComics, err := getComicsFromURL("https://xkcd.com/info.0.json")
+		comicsURL := fmt.Sprintf("%s/info.0.json", c.comicsURL)
+		latestComics, err := c.getComicsFromURL(comicsURL)
 		if err != nil {
 			return nil, err
 		}
@@ -58,10 +68,10 @@ func GetComicsFromSite(urlName string, startComicsId, endComicsId int) (map[int]
 			wg.Add(1)
 			curGoroutines++
 			go func(comicsID int) {
-				comicsURL := fmt.Sprintf("%s/%d/info.0.json", urlName, comicsID)
+				comicsURL := fmt.Sprintf("%s/%d/info.0.json", c.comicsURL, comicsID)
 				log.Println(comicsURL)
 
-				myComics, err := getComicsFromURL(comicsURL)
+				myComics, err := c.getComicsFromURL(comicsURL)
 				if err != nil {
 					log.Printf("%s, comicsID is - %d", err, comicsID)
 				}
@@ -86,9 +96,9 @@ func GetComicsFromSite(urlName string, startComicsId, endComicsId int) (map[int]
 	return comicsToJSON, nil
 }
 
-func getComicsFromURL(comicsURL string) (comicsInfo, error) {
-	c := http.Client{}
-	resp, err := c.Get(comicsURL)
+func (c ComicsDownloader) getComicsFromURL(comicsURL string) (comicsInfo, error) {
+	client := http.Client{}
+	resp, err := client.Get(comicsURL)
 	if err != nil {
 		return comicsInfo{}, err
 	}
