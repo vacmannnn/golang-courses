@@ -33,14 +33,13 @@ type ComicsDownloader struct {
 	comicsURL string
 }
 
-// NewComicsDownloader sets link to source cite with comics
+// NewComicsDownloader sets link to source site with comics
 func NewComicsDownloader(comicsURL string) ComicsDownloader {
 	return ComicsDownloader{comicsURL: comicsURL}
 }
 
-// GetComicsFromSite gets id of first comics to download and last. If any value is not greater than 0
-// it will be reassigned to 1 in case of first comics and to latest comics at whole cite in case of last id.
-// Function will log any non-critical error.
+// GetComicsFromSite gets slice of comics indices to download. In case of zero len slice, it will download all possible
+// comics. Function will log any non-critical error.
 func (c ComicsDownloader) GetComicsFromSite(comicsID []int) (map[int]ComicsDescript, error) {
 	var latestComicsID int
 	if len(comicsID) == 0 {
