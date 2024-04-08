@@ -30,69 +30,68 @@ type ComicsDescript struct {
 }
 
 type ComicsDownloader struct {
-	comicsURL string
+	comicsURL        string
+	comics           map[int]ComicsDescript
+	lastDownloadedID int
 }
 
 // NewComicsDownloader sets link to source site with comics
-func NewComicsDownloader(comicsURL string) ComicsDownloader {
-	return ComicsDownloader{comicsURL: comicsURL}
+func NewComicsDownloader(comicsURL string, comics map[int]ComicsDescript) ComicsDownloader {
+	return ComicsDownloader{comicsURL: comicsURL, comics: comics}
 }
+
+// TODO
+// func (c *ComicsDownloader) ChangeStartPointOfDownloading(sp int ) {
+// 	c.lastDownloadedID = sp
+// }
 
 // GetComicsFromSite gets slice of comics indices to download. In case of zero len slice, it will download all possible
 // comics. Function will log any non-critical error.
-func (c ComicsDownloader) GetComicsFromSite(comicsID []int) (map[int]ComicsDescript, error) {
-	var latestComicsID int
-	if len(comicsID) == 0 {
-		comicsURL := fmt.Sprintf("%s/info.0.json", c.comicsURL)
-		latestComics, err := c.getComicsFromURL(comicsURL)
-		if err != nil {
-			return nil, err
-		}
-		latestComicsID = latestComics.Num
-		for i := 1; i <= latestComicsID; i++ {
-			comicsID = append(comicsID, i)
-		}
-	}
+func (c *ComicsDownloader) GetComicsFromSite(numOfComics int) (map[int]ComicsDescript, int, error) {
 
-	var curGoroutines int
 	var wg sync.WaitGroup
-	comicsChan := make(chan comicsInfo)
-	comicsToJSON := make(map[int]ComicsDescript, len(comicsID))
+	var mt sync.Mutex
+	var successDownloaded int
 
-	go func() {
-		for _, i := range comicsID {
+	func() {
+		for i := c.lastDownloadedID + 1; i <= c.lastDownloadedID+numOfComics; i++ {
+			fmt.Println(i)
 			wg.Add(1)
-			curGoroutines++
 			go func(comicsID int) {
+				defer wg.Done()
+				if c.comics[comicsID].Keywords != nil {
+					log.Println(comicsID)
+					successDownloaded++
+					fmt.Println(successDownloaded)
+					return
+				}
 				comicsURL := fmt.Sprintf("%s/%d/info.0.json", c.comicsURL, comicsID)
 				log.Println(comicsURL)
 
 				myComics, err := c.getComicsFromURL(comicsURL)
-				if err != nil {
+				if err != nil && comicsID != 404 {
 					log.Printf("%s, comicsID is - %d", err, comicsID)
+					return
 				}
-
-				comicsChan <- myComics
-				wg.Done()
+				if comicsID == 404 {
+					successDownloaded++
+					return
+				}
+				keywords := strings.Split(myComics.Transcript, " ")
+				mt.Lock()
+				defer mt.Unlock()
+				c.comics[comicsID] = ComicsDescript{Url: myComics.ImgURL, Keywords: keywords}
+				successDownloaded++
 			}(i)
 
-			// Need to download step by step due possible heavy load on the network
-			if curGoroutines%500 == 0 {
-				wg.Wait()
-			}
 		}
 	}()
-	for range comicsID {
-		comicsOwner := <-comicsChan
-		keywords := strings.Split(comicsOwner.Transcript, " ")
-		comicsToJSON[comicsOwner.Num] = ComicsDescript{Url: comicsOwner.ImgURL, Keywords: keywords}
-	}
 	wg.Wait()
-
-	return comicsToJSON, nil
+	c.lastDownloadedID = c.lastDownloadedID + numOfComics
+	return c.comics, successDownloaded, nil
 }
 
-func (c ComicsDownloader) getComicsFromURL(comicsURL string) (comicsInfo, error) {
+func (c *ComicsDownloader) getComicsFromURL(comicsURL string) (comicsInfo, error) {
 	client := http.Client{}
 	resp, err := client.Get(comicsURL)
 	if err != nil {
@@ -114,4 +113,10 @@ func (c ComicsDownloader) getComicsFromURL(comicsURL string) (comicsInfo, error)
 	}
 
 	return myComics, nil
+}
+
+func (c *ComicsDownloader) getLatestComicsID() int {
+	comicsURL := fmt.Sprintf("%s/info.0.json", c.comicsURL)
+	latestComics, _ := c.getComicsFromURL(comicsURL)
+	return latestComics.Num
 }
