@@ -4,9 +4,7 @@ import (
 	"courses/pkg/database"
 	"courses/pkg/words"
 	"courses/pkg/xkcd"
-	"encoding/json"
 	"flag"
-	"fmt"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -61,7 +59,7 @@ func main() {
 		log.Println(err)
 	}
 
-	fmt.Println(comicsToJSON)
+	log.Printf("%d comics in base", len(comicsToJSON))
 
 	// download needed
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl, comicsToJSON)
@@ -76,17 +74,6 @@ func main() {
 		if err = myDB.Write(comicsToJSON); err != nil {
 			log.Fatal(err)
 		}
-
-	}
-	if err != nil {
-		log.Println(err)
-		if comics == nil {
-			return
-		}
 	}
 
-}
-
-func marshallComics(comicsToJSON map[int]xkcd.ComicsDescript) ([]byte, error) {
-	return json.MarshalIndent(comicsToJSON, "", " ")
 }

@@ -42,7 +42,7 @@ func (d *DataBase) Read() (map[int]xkcd.ComicsDescript, error) {
 	for decoder.More() {
 		var person map[int]xkcd.ComicsDescript
 		if err := decoder.Decode(&person); err != nil {
-			return nil, err
+			return total, err
 		}
 		for k, v := range person {
 			total[k] = v

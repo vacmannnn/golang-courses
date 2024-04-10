@@ -56,40 +56,39 @@ func (c *ComicsDownloader) GetComicsFromSite(numOfComics int) (map[int]ComicsDes
 		successDownloaded int
 	)
 
-	func() {
-		for i := c.lastDownloadedID + 1; i <= c.lastDownloadedID+numOfComics; i++ {
-			wg.Add(1)
-			go func(comicsID int) {
-				defer wg.Done()
-				if c.comics[comicsID].Keywords != nil {
-					mt.Lock()
-					defer mt.Unlock()
-					resMap[comicsID] = c.comics[comicsID]
-					successDownloaded++
-					return
-				}
-				comicsURL := fmt.Sprintf("%s/%d/info.0.json", c.comicsURL, comicsID)
-				log.Println(comicsURL)
-
-				myComics, err := c.getComicsFromURL(comicsURL)
-				if err != nil && comicsID != 404 {
-					log.Printf("%s, comicsID is - %d", err, comicsID)
-					return
-				}
-				if comicsID == 404 {
-					successDownloaded++
-					return
-				}
-				keywords := strings.Split(myComics.Transcript, " ")
+	for i := c.lastDownloadedID + 1; i <= c.lastDownloadedID+numOfComics; i++ {
+		wg.Add(1)
+		go func(comicsID int) {
+			defer wg.Done()
+			if c.comics[comicsID].Keywords != nil {
 				mt.Lock()
 				defer mt.Unlock()
-				c.comics[comicsID] = ComicsDescript{Url: myComics.ImgURL, Keywords: keywords}
 				resMap[comicsID] = c.comics[comicsID]
 				successDownloaded++
-			}(i)
+				return
+			}
+			comicsURL := fmt.Sprintf("%s/%d/info.0.json", c.comicsURL, comicsID)
+			log.Println(comicsURL)
 
-		}
-	}()
+			myComics, err := c.getComicsFromURL(comicsURL)
+			if err != nil && comicsID != 404 {
+				log.Printf("%s, comicsID is - %d", err, comicsID)
+				return
+			}
+			if comicsID == 404 {
+				successDownloaded++
+				return
+			}
+
+			keywords := strings.Split(myComics.Transcript, " ")
+			mt.Lock()
+			defer mt.Unlock()
+			c.comics[comicsID] = ComicsDescript{Url: myComics.ImgURL, Keywords: keywords}
+			resMap[comicsID] = c.comics[comicsID]
+			successDownloaded++
+		}(i)
+
+	}
 	wg.Wait()
 	c.lastDownloadedID = c.lastDownloadedID + numOfComics
 	return resMap, successDownloaded, nil
