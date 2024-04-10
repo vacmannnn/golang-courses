@@ -65,9 +65,12 @@ func main() {
 	// it will be uploaded to DB to prevent problems with unexpected program kill
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl, comicsToJSON)
 
-	var comics = make(map[int]xkcd.ComicsDescript, 3000)
+	var comics map[int]xkcd.ComicsDescript
 	for comicsToDownload := 500; comicsToDownload == 500; {
 		comics, comicsToDownload, err = downloader.GetNComicsFromSite(comicsToDownload)
+		if err != nil {
+			log.Println(err)
+		}
 		for k, v := range comics {
 			v.Keywords = words.StemStringWithClearing(v.Keywords)
 			comicsToJSON[k] = v

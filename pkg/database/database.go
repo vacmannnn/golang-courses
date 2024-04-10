@@ -18,7 +18,7 @@ func NewDB(path string) DataBase {
 
 func (d *DataBase) Write(data map[int]xkcd.ComicsDescript) error {
 	var err error
-	w := &os.File{}
+	var w *os.File
 	if d.readBefore {
 		w, err = os.OpenFile(d.pathToDB, os.O_WRONLY, 0644)
 	} else {
