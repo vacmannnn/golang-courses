@@ -40,14 +40,15 @@ func NewComicsDownloader(comicsURL string, comics map[int]ComicsDescript) Comics
 	return ComicsDownloader{comicsURL: comicsURL, comics: comics}
 }
 
-// TODO
-// func (c *ComicsDownloader) ChangeStartPointOfDownloading(sp int ) {
-// 	c.lastDownloadedID = sp
-// }
+// ChangeStartIDOfDownloading sets new ID from which newest comics will be downloaded, default value will
+// grow after each download by numOfComics
+func (c *ComicsDownloader) ChangeStartIDOfDownloading(startPos int) {
+	c.lastDownloadedID = startPos
+}
 
-// GetComicsFromSite gets slice of comics indices to download. In case of zero len slice, it will download all possible
-// comics. Function will log any non-critical error.
-func (c *ComicsDownloader) GetComicsFromSite(numOfComics int) (map[int]ComicsDescript, int, error) {
+// GetNComicsFromSite gets num of comics that will be downloaded from site. Start id of downloading comics depends
+// on previous downloads. Returns map with needed comics and number of successful downloads.
+func (c *ComicsDownloader) GetNComicsFromSite(numOfComics int) (map[int]ComicsDescript, int, error) {
 
 	var resMap = make(map[int]ComicsDescript, numOfComics)
 	var (

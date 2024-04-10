@@ -61,12 +61,13 @@ func main() {
 
 	log.Printf("%d comics in base", len(comicsToJSON))
 
-	// download needed
+	// comics downloads by parts. Each parts consist of N (current num is 500) comics, after downloading each part
+	// it will be uploaded to DB to prevent problems with unexpected program kill
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl, comicsToJSON)
 
 	var comics = make(map[int]xkcd.ComicsDescript, 3000)
 	for comicsToDownload := 500; comicsToDownload == 500; {
-		comics, comicsToDownload, err = downloader.GetComicsFromSite(comicsToDownload)
+		comics, comicsToDownload, err = downloader.GetNComicsFromSite(comicsToDownload)
 		for k, v := range comics {
 			v.Keywords = words.StemStringWithClearing(v.Keywords)
 			comicsToJSON[k] = v
