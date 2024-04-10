@@ -118,9 +118,3 @@ func (c *ComicsDownloader) getComicsFromURL(comicsURL string) (comicsInfo, error
 
 	return myComics, nil
 }
-
-func (c *ComicsDownloader) getLatestComicsID() int {
-	comicsURL := fmt.Sprintf("%s/info.0.json", c.comicsURL)
-	latestComics, _ := c.getComicsFromURL(comicsURL)
-	return latestComics.Num
-}
