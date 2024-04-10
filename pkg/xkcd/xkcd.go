@@ -49,20 +49,23 @@ func NewComicsDownloader(comicsURL string, comics map[int]ComicsDescript) Comics
 // comics. Function will log any non-critical error.
 func (c *ComicsDownloader) GetComicsFromSite(numOfComics int) (map[int]ComicsDescript, int, error) {
 
-	var wg sync.WaitGroup
-	var mt sync.Mutex
-	var successDownloaded int
+	var resMap = make(map[int]ComicsDescript, numOfComics)
+	var (
+		wg                sync.WaitGroup
+		mt                sync.Mutex
+		successDownloaded int
+	)
 
 	func() {
 		for i := c.lastDownloadedID + 1; i <= c.lastDownloadedID+numOfComics; i++ {
-			fmt.Println(i)
 			wg.Add(1)
 			go func(comicsID int) {
 				defer wg.Done()
 				if c.comics[comicsID].Keywords != nil {
-					log.Println(comicsID)
+					mt.Lock()
+					defer mt.Unlock()
+					resMap[comicsID] = c.comics[comicsID]
 					successDownloaded++
-					fmt.Println(successDownloaded)
 					return
 				}
 				comicsURL := fmt.Sprintf("%s/%d/info.0.json", c.comicsURL, comicsID)
@@ -81,6 +84,7 @@ func (c *ComicsDownloader) GetComicsFromSite(numOfComics int) (map[int]ComicsDes
 				mt.Lock()
 				defer mt.Unlock()
 				c.comics[comicsID] = ComicsDescript{Url: myComics.ImgURL, Keywords: keywords}
+				resMap[comicsID] = c.comics[comicsID]
 				successDownloaded++
 			}(i)
 
@@ -88,7 +92,7 @@ func (c *ComicsDownloader) GetComicsFromSite(numOfComics int) (map[int]ComicsDes
 	}()
 	wg.Wait()
 	c.lastDownloadedID = c.lastDownloadedID + numOfComics
-	return c.comics, successDownloaded, nil
+	return resMap, successDownloaded, nil
 }
 
 func (c *ComicsDownloader) getComicsFromURL(comicsURL string) (comicsInfo, error) {

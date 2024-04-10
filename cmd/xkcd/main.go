@@ -10,7 +10,6 @@ import (
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
-	"time"
 )
 
 type Config struct {
@@ -51,27 +50,33 @@ func main() {
 	}
 
 	// read existed json to simplify downloading
-	comicsToJSON := make(map[int]xkcd.ComicsDescript)
 	myDB := database.NewDB(conf.DBFile)
 
 	// it's ok if there was an error in file because we are going to create again and overwrite it
-	file, err := myDB.Read()
+	comicsToJSON, err := myDB.Read()
+	if comicsToJSON == nil {
+		comicsToJSON = make(map[int]xkcd.ComicsDescript, 3000)
+	}
 	if err != nil {
 		log.Println(err)
 	}
 
-	// if case of any error in unmarshalling whole file will be overwritten due to corruption
-	err = json.Unmarshal(file, &comicsToJSON)
 	fmt.Println(comicsToJSON)
 
 	// download needed
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl, comicsToJSON)
 
-	var comics map[int]xkcd.ComicsDescript
+	var comics = make(map[int]xkcd.ComicsDescript, 3000)
 	for comicsToDownload := 500; comicsToDownload == 500; {
-		time.Sleep(time.Second * 3)
 		comics, comicsToDownload, err = downloader.GetComicsFromSite(comicsToDownload)
-		fmt.Println("all good!", comicsToDownload)
+		for k, v := range comics {
+			v.Keywords = words.StemStringWithClearing(v.Keywords)
+			comicsToJSON[k] = v
+		}
+		if err = myDB.Write(comicsToJSON); err != nil {
+			log.Fatal(err)
+		}
+
 	}
 	if err != nil {
 		log.Println(err)
@@ -79,21 +84,7 @@ func main() {
 			return
 		}
 	}
-	for k, v := range comics {
-		v.Keywords = words.StemStringWithClearing(v.Keywords)
-		comicsToJSON[k] = v
-	}
 
-	// load to JSON
-	bytes, err := marshallComics(comicsToJSON)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	if err = myDB.Write(bytes); err != nil {
-		log.Fatal(err)
-	}
 }
 
 func marshallComics(comicsToJSON map[int]xkcd.ComicsDescript) ([]byte, error) {
