@@ -35,6 +35,10 @@ func NewComicsDownloader(comicsURL string) ComicsDownloader {
 
 // TODO: descript
 func (c *ComicsDownloader) GetComicsFromID(comicsID int) (core.ComicsDescript, int, error) {
+	if comicsID == 404 {
+		return core.ComicsDescript{Url: "https://xkcd.com/404", Keywords: nil}, comicsID, nil
+	}
+
 	client := http.Client{}
 	comicsURL := fmt.Sprintf("%s/%d/info.0.json", c.comicsURL, comicsID)
 	resp, err := client.Get(comicsURL)
