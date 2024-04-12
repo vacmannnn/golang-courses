@@ -20,7 +20,7 @@ func (d *DataBase) Write(data map[int]core.ComicsDescript) error {
 	var err error
 	var w *os.File
 	if d.readBefore {
-		w, err = os.OpenFile(d.pathToDB, os.O_WRONLY, 0644)
+		w, err = os.OpenFile(d.pathToDB, os.O_APPEND|os.O_WRONLY, 0644)
 	} else {
 		w, err = os.Create(d.pathToDB)
 		d.readBefore = true
