@@ -39,7 +39,7 @@ func (c *ComicsDownloader) GetComicsFromID(comicsID int) (core.ComicsDescript, i
 		return core.ComicsDescript{Url: "https://xkcd.com/404", Keywords: nil}, comicsID, nil
 	}
 
-	client := http.Client{}
+	client := http.Client{Timeout: core.MaxWaitTime}
 	comicsURL := fmt.Sprintf("%s/%d/info.0.json", c.comicsURL, comicsID)
 	resp, err := client.Get(comicsURL)
 	if err != nil {
