@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+	"time"
 )
 
 type Config struct {
@@ -57,15 +58,17 @@ func main() {
 	comicsChan := make(chan comicsDescriptWithID, goroutineNum)
 
 	for range goroutineNum {
-		go worker(downloader, comicsIDChan, comicsChan)
+		go worker(downloader, comicsToJSON, comicsIDChan, comicsChan)
 	}
 
+	var curComics comicsDescriptWithID
 	for i := 1; ; i++ {
-		curComics := comicsDescriptWithID{id: i, ComicsDescript: comicsToJSON[i]}
-		if curComics.Keywords == nil {
-			comicsIDChan <- i
-			curComics = <-comicsChan
+		if i%goroutineNum == 1 {
+			for j := i; j < i+goroutineNum; j++ {
+				comicsIDChan <- j
+			}
 		}
+		curComics = <-comicsChan
 		if curComics.Url != "" {
 			var comics = make(map[int]core.ComicsDescript)
 			comics[curComics.id] = curComics.ComicsDescript
@@ -73,8 +76,10 @@ func main() {
 				log.Fatal(err)
 			}
 		} else {
+			time.Sleep(core.MaxWaitTime)
 			close(comicsIDChan)
-			for curComics = range comicsChan {
+			for range len(comicsChan) {
+				curComics := <-comicsChan
 				if curComics.Url != "" {
 					comics := map[int]core.ComicsDescript{curComics.id: curComics.ComicsDescript}
 					if err = myDB.Write(comics); err != nil {
@@ -82,20 +87,25 @@ func main() {
 					}
 				}
 			}
+			close(comicsChan)
 			break
 		}
 	}
 }
 
-func worker(downloader xkcd.ComicsDownloader, comicsIDChan <-chan int, results chan<- comicsDescriptWithID) {
+func worker(downloader xkcd.ComicsDownloader, comics map[int]core.ComicsDescript, comicsIDChan <-chan int, results chan<- comicsDescriptWithID) {
 	for j := range comicsIDChan {
-		descript, id, err := downloader.GetComicsFromID(j)
-		if err != nil {
-			results <- comicsDescriptWithID{}
-			return
+		if comics[j].Keywords == nil {
+			descript, id, err := downloader.GetComicsFromID(j)
+			if err != nil {
+				results <- comicsDescriptWithID{id: j}
+				return
+			}
+			descript.Keywords = words.StemStringWithClearing(descript.Keywords)
+			results <- comicsDescriptWithID{id: id, ComicsDescript: descript}
+			continue
 		}
-		descript.Keywords = words.StemStringWithClearing(descript.Keywords)
-		results <- comicsDescriptWithID{id: id, ComicsDescript: descript}
+		results <- comicsDescriptWithID{id: j, ComicsDescript: comics[j]}
 	}
 }
 
