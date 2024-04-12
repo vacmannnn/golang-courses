@@ -64,10 +64,8 @@ func (c *ComicsDownloader) GetNComicsFromSite(numOfComics int) (map[int]core.Com
 				successDownloaded++
 				return
 			}
-			comicsURL := fmt.Sprintf("%s/%d/info.0.json", c.comicsURL, comicsID)
-			log.Println(comicsURL)
 
-			myComics, err := c.getComicsFromURL(comicsURL)
+			myComics, _, err := c.GetComicsFromID(comicsID)
 			if err != nil && comicsID != 404 {
 				log.Printf("%s, comicsID is - %d", err, comicsID)
 				return
@@ -77,11 +75,10 @@ func (c *ComicsDownloader) GetNComicsFromSite(numOfComics int) (map[int]core.Com
 				return
 			}
 
-			keywords := strings.Split(myComics.Transcript, " ")
 			mt.Lock()
 			defer mt.Unlock()
-			c.comics[comicsID] = core.ComicsDescript{Url: myComics.ImgURL, Keywords: keywords}
-			resMap[comicsID] = c.comics[comicsID]
+			c.comics[comicsID] = myComics
+			resMap[comicsID] = myComics
 			successDownloaded++
 		}(i)
 
@@ -91,26 +88,30 @@ func (c *ComicsDownloader) GetNComicsFromSite(numOfComics int) (map[int]core.Com
 	return resMap, successDownloaded, nil
 }
 
-func (c *ComicsDownloader) getComicsFromURL(comicsURL string) (comicsInfo, error) {
+// TODO: descript
+func (c *ComicsDownloader) GetComicsFromID(comicsID int) (core.ComicsDescript, int, error) {
 	client := http.Client{}
+	comicsURL := fmt.Sprintf("%s/%d/info.0.json", c.comicsURL, comicsID)
 	resp, err := client.Get(comicsURL)
 	if err != nil {
-		return comicsInfo{}, err
+		return core.ComicsDescript{}, comicsID, err
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(resp.Body)
+	log.Println(comicsURL)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return comicsInfo{}, err
+		return core.ComicsDescript{}, comicsID, err
 	}
 
-	var myComics comicsInfo
-	err = json.Unmarshal(body, &myComics)
+	var fulComics comicsInfo
+	err = json.Unmarshal(body, &fulComics)
 	if err != nil {
-		return comicsInfo{}, err
+		return core.ComicsDescript{}, comicsID, err
 	}
 
-	return myComics, nil
+	keywords := strings.Split(fulComics.Transcript, " ")
+	return core.ComicsDescript{Url: fulComics.ImgURL, Keywords: keywords}, fulComics.Num, nil
 }
