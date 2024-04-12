@@ -34,6 +34,10 @@ func main() {
 		log.Fatal(err)
 		return
 	}
+	goroutineNum, err := getGoroutinesNum()
+	if err != nil {
+		log.Println(err)
+	}
 
 	// read existed DB to simplify downloading
 	myDB := database.NewDB(conf.DBFile)
@@ -50,7 +54,6 @@ func main() {
 
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 
-	const goroutineNum = 500
 	comicsIDChan := make(chan int, goroutineNum)
 	comicsChan := make(chan comicsDescriptWithID, goroutineNum)
 
@@ -131,4 +134,22 @@ func newConfig(configPath string) (*Config, error) {
 	}
 
 	return config, nil
+}
+
+func getGoroutinesNum() (int, error) {
+	defaultValue := 500
+	file, err := os.Open("parallel")
+	if err != nil {
+		return defaultValue, err
+	}
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
+
+	d := yaml.NewDecoder(file)
+	if err = d.Decode(&defaultValue); err != nil {
+		return 500, err
+	}
+
+	return defaultValue, nil
 }
