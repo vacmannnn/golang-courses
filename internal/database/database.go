@@ -1,7 +1,7 @@
 package database
 
 import (
-	"courses/pkg/xkcd"
+	"courses/internal/core"
 	"encoding/json"
 	"os"
 )
@@ -16,7 +16,7 @@ func NewDB(path string) DataBase {
 	return DataBase{pathToDB: path}
 }
 
-func (d *DataBase) Write(data map[int]xkcd.ComicsDescript) error {
+func (d *DataBase) Write(data map[int]core.ComicsDescript) error {
 	var err error
 	var w *os.File
 	if d.readBefore {
@@ -32,15 +32,15 @@ func (d *DataBase) Write(data map[int]xkcd.ComicsDescript) error {
 	return encoder.Encode(data)
 }
 
-func (d *DataBase) Read() (map[int]xkcd.ComicsDescript, error) {
+func (d *DataBase) Read() (map[int]core.ComicsDescript, error) {
 	r, err := os.OpenFile(d.pathToDB, os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
 	decoder := json.NewDecoder(r)
-	total := make(map[int]xkcd.ComicsDescript)
+	total := make(map[int]core.ComicsDescript)
 	for decoder.More() {
-		var person map[int]xkcd.ComicsDescript
+		var person map[int]core.ComicsDescript
 		if err := decoder.Decode(&person); err != nil {
 			return total, err
 		}

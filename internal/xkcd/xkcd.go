@@ -1,6 +1,7 @@
 package xkcd
 
 import (
+	"courses/internal/core"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,19 +25,14 @@ type comicsInfo struct {
 	Day        string `json:"day"`
 }
 
-type ComicsDescript struct {
-	Url      string   `json:"url"`
-	Keywords []string `json:"keywords"`
-}
-
 type ComicsDownloader struct {
 	comicsURL        string
-	comics           map[int]ComicsDescript
+	comics           map[int]core.ComicsDescript
 	lastDownloadedID int
 }
 
 // NewComicsDownloader sets link to source site with comics
-func NewComicsDownloader(comicsURL string, comics map[int]ComicsDescript) ComicsDownloader {
+func NewComicsDownloader(comicsURL string, comics map[int]core.ComicsDescript) ComicsDownloader {
 	return ComicsDownloader{comicsURL: comicsURL, comics: comics}
 }
 
@@ -48,9 +44,9 @@ func (c *ComicsDownloader) ChangeStartIDOfDownloading(startPos int) {
 
 // GetNComicsFromSite gets num of comics that will be downloaded from site. Start id of downloading comics depends
 // on previous downloads. Returns map with needed comics and number of successful downloads.
-func (c *ComicsDownloader) GetNComicsFromSite(numOfComics int) (map[int]ComicsDescript, int, error) {
+func (c *ComicsDownloader) GetNComicsFromSite(numOfComics int) (map[int]core.ComicsDescript, int, error) {
 
-	var resMap = make(map[int]ComicsDescript, numOfComics)
+	var resMap = make(map[int]core.ComicsDescript, numOfComics)
 	var (
 		wg                sync.WaitGroup
 		mt                sync.Mutex
@@ -84,7 +80,7 @@ func (c *ComicsDownloader) GetNComicsFromSite(numOfComics int) (map[int]ComicsDe
 			keywords := strings.Split(myComics.Transcript, " ")
 			mt.Lock()
 			defer mt.Unlock()
-			c.comics[comicsID] = ComicsDescript{Url: myComics.ImgURL, Keywords: keywords}
+			c.comics[comicsID] = core.ComicsDescript{Url: myComics.ImgURL, Keywords: keywords}
 			resMap[comicsID] = c.comics[comicsID]
 			successDownloaded++
 		}(i)
