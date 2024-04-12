@@ -35,10 +35,9 @@ func main() {
 		return
 	}
 
-	// read existed json to simplify downloading
+	// read existed DB to simplify downloading
 	myDB := database.NewDB(conf.DBFile)
 
-	// it's ok if there was an error in file because we are going to create again and overwrite it
 	comicsToJSON, err := myDB.Read()
 	if comicsToJSON == nil {
 		comicsToJSON = make(map[int]core.ComicsDescript, 3000)
@@ -49,11 +48,9 @@ func main() {
 
 	log.Printf("%d comics in base", len(comicsToJSON))
 
-	// comics downloads by parts. Each parts consist of N (current num is 500) comics, after downloading each part
-	// it will be uploaded to DB to prevent problems with unexpected program kill
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 
-	goroutineNum := 500
+	const goroutineNum = 500
 	comicsIDChan := make(chan int, goroutineNum)
 	comicsChan := make(chan comicsDescriptWithID, goroutineNum)
 
@@ -63,50 +60,58 @@ func main() {
 
 	var curComics comicsDescriptWithID
 	for i := 1; ; i++ {
+		// send in advance bunch of ID to optimize downloading
 		if i%goroutineNum == 1 {
 			for j := i; j < i+goroutineNum; j++ {
 				comicsIDChan <- j
 			}
 		}
+
 		curComics = <-comicsChan
 		if curComics.Url != "" {
-			var comics = make(map[int]core.ComicsDescript)
-			comics[curComics.id] = curComics.ComicsDescript
-			if err = myDB.Write(comics); err != nil {
+			if err = writeComicsWithID(curComics, myDB); err != nil {
 				log.Fatal(err)
 			}
 		} else {
+			// wait till we get all comics from site
 			time.Sleep(core.MaxWaitTime)
-			close(comicsIDChan)
 			for range len(comicsChan) {
-				curComics := <-comicsChan
-				if curComics.Url != "" {
-					comics := map[int]core.ComicsDescript{curComics.id: curComics.ComicsDescript}
-					if err = myDB.Write(comics); err != nil {
-						log.Fatal(err)
-					}
+				curComics = <-comicsChan
+				if curComics.Url == "" {
+					continue
+				}
+				if err = writeComicsWithID(curComics, myDB); err != nil {
+					log.Fatal(err)
 				}
 			}
+			close(comicsIDChan)
 			close(comicsChan)
 			break
 		}
 	}
 }
 
-func worker(downloader xkcd.ComicsDownloader, comics map[int]core.ComicsDescript, comicsIDChan <-chan int, results chan<- comicsDescriptWithID) {
-	for j := range comicsIDChan {
-		if comics[j].Keywords == nil {
-			descript, id, err := downloader.GetComicsFromID(j)
+func worker(downloader xkcd.ComicsDownloader, comics map[int]core.ComicsDescript, comicsIDChan <-chan int,
+	results chan<- comicsDescriptWithID) {
+	for comID := range comicsIDChan {
+		if comics[comID].Keywords == nil {
+			descript, id, err := downloader.GetComicsFromID(comID)
 			if err != nil {
-				results <- comicsDescriptWithID{id: j}
-				return
+				results <- comicsDescriptWithID{id: comID}
+				continue
 			}
 			descript.Keywords = words.StemStringWithClearing(descript.Keywords)
 			results <- comicsDescriptWithID{id: id, ComicsDescript: descript}
 			continue
 		}
-		results <- comicsDescriptWithID{id: j, ComicsDescript: comics[j]}
+		results <- comicsDescriptWithID{id: comID, ComicsDescript: comics[comID]}
 	}
+}
+
+func writeComicsWithID(comicsWID comicsDescriptWithID, db database.DataBase) error {
+	var comics = make(map[int]core.ComicsDescript)
+	comics[comicsWID.id] = comicsWID.ComicsDescript
+	return db.Write(comics)
 }
 
 func newConfig(configPath string) (*Config, error) {
