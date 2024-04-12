@@ -21,25 +21,6 @@ type comicsDescriptWithID struct {
 	id int
 }
 
-func newConfig(configPath string) (*Config, error) {
-	config := &Config{}
-
-	file, err := os.Open(configPath)
-	if err != nil {
-		return nil, err
-	}
-	defer func(file *os.File) {
-		_ = file.Close()
-	}(file)
-
-	d := yaml.NewDecoder(file)
-	if err = d.Decode(&config); err != nil {
-		return nil, err
-	}
-
-	return config, nil
-}
-
 func main() {
 	// parse flags
 	var configPath string
@@ -71,31 +52,21 @@ func main() {
 	// it will be uploaded to DB to prevent problems with unexpected program kill
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 
-	comicsIDChan := make(chan int)
-	comicsChan := make(chan comicsDescriptWithID)
+	goroutineNum := 500
+	comicsIDChan := make(chan int, goroutineNum)
+	comicsChan := make(chan comicsDescriptWithID, goroutineNum)
 
-	go func() {
-		for curID := range comicsIDChan {
-			if comicsToJSON[curID].Keywords == nil {
-				descript, id, err := downloader.GetComicsFromID(curID)
-				if err != nil {
-					comicsChan <- comicsDescriptWithID{}
-					close(comicsChan)
-					return
-				}
-				comicsChan <- comicsDescriptWithID{id: id, ComicsDescript: descript}
-				continue
-			}
-			comicsChan <- comicsDescriptWithID{id: curID, ComicsDescript: comicsToJSON[curID]}
-		}
-	}()
+	for range goroutineNum {
+		go worker(downloader, comicsIDChan, comicsChan)
+	}
 
 	for i := 1; ; i++ {
-		var curComics comicsDescriptWithID
-		comicsIDChan <- i
-		curComics = <-comicsChan
+		curComics := comicsDescriptWithID{id: i, ComicsDescript: comicsToJSON[i]}
+		if curComics.Keywords == nil {
+			comicsIDChan <- i
+			curComics = <-comicsChan
+		}
 		if curComics.Url != "" {
-			curComics.Keywords = words.StemStringWithClearing(curComics.Keywords)
 			var comics = make(map[int]core.ComicsDescript)
 			comics[curComics.id] = curComics.ComicsDescript
 			if err = myDB.Write(comics); err != nil {
@@ -105,7 +76,6 @@ func main() {
 			close(comicsIDChan)
 			for curComics = range comicsChan {
 				if curComics.Url != "" {
-					curComics.Keywords = words.StemStringWithClearing(curComics.Keywords)
 					comics := map[int]core.ComicsDescript{curComics.id: curComics.ComicsDescript}
 					if err = myDB.Write(comics); err != nil {
 						log.Fatal(err)
@@ -115,4 +85,35 @@ func main() {
 			break
 		}
 	}
+}
+
+func worker(downloader xkcd.ComicsDownloader, comicsIDChan <-chan int, results chan<- comicsDescriptWithID) {
+	for j := range comicsIDChan {
+		descript, id, err := downloader.GetComicsFromID(j)
+		if err != nil {
+			results <- comicsDescriptWithID{}
+			return
+		}
+		descript.Keywords = words.StemStringWithClearing(descript.Keywords)
+		results <- comicsDescriptWithID{id: id, ComicsDescript: descript}
+	}
+}
+
+func newConfig(configPath string) (*Config, error) {
+	config := &Config{}
+
+	file, err := os.Open(configPath)
+	if err != nil {
+		return nil, err
+	}
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
+
+	d := yaml.NewDecoder(file)
+	if err = d.Decode(&config); err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }
