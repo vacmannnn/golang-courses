@@ -16,6 +16,11 @@ type Config struct {
 	DBFile    string `yaml:"db_file"`
 }
 
+type comicsDescriptWithID struct {
+	core.ComicsDescript
+	id int
+}
+
 func newConfig(configPath string) (*Config, error) {
 	config := &Config{}
 
@@ -64,22 +69,50 @@ func main() {
 
 	// comics downloads by parts. Each parts consist of N (current num is 500) comics, after downloading each part
 	// it will be uploaded to DB to prevent problems with unexpected program kill
-	downloader := xkcd.NewComicsDownloader(conf.SourceUrl, comicsToJSON)
+	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 
-	var comics map[int]core.ComicsDescript
-	const comicsToDownloadNum = 500
+	comicsIDChan := make(chan int)
+	comicsChan := make(chan comicsDescriptWithID)
 
-	for comicsToDownload := comicsToDownloadNum; comicsToDownload == comicsToDownloadNum; {
-		comics, comicsToDownload, err = downloader.GetNComicsFromSite(comicsToDownload)
-		if err != nil {
-			log.Println(err)
+	go func() {
+		for curID := range comicsIDChan {
+			if comicsToJSON[curID].Keywords == nil {
+				descript, id, err := downloader.GetComicsFromID(curID)
+				if err != nil {
+					comicsChan <- comicsDescriptWithID{}
+					close(comicsChan)
+					return
+				}
+				comicsChan <- comicsDescriptWithID{id: id, ComicsDescript: descript}
+				continue
+			}
+			comicsChan <- comicsDescriptWithID{id: curID, ComicsDescript: comicsToJSON[curID]}
 		}
-		for k, v := range comics {
-			v.Keywords = words.StemStringWithClearing(v.Keywords)
-			comicsToJSON[k] = v
-		}
-		if err = myDB.Write(comicsToJSON); err != nil {
-			log.Fatal(err)
+	}()
+
+	for i := 1; ; i++ {
+		var curComics comicsDescriptWithID
+		comicsIDChan <- i
+		curComics = <-comicsChan
+		if curComics.Url != "" {
+			curComics.Keywords = words.StemStringWithClearing(curComics.Keywords)
+			var comics = make(map[int]core.ComicsDescript)
+			comics[curComics.id] = curComics.ComicsDescript
+			if err = myDB.Write(comics); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			close(comicsIDChan)
+			for curComics = range comicsChan {
+				if curComics.Url != "" {
+					curComics.Keywords = words.StemStringWithClearing(curComics.Keywords)
+					comics := map[int]core.ComicsDescript{curComics.id: curComics.ComicsDescript}
+					if err = myDB.Write(comics); err != nil {
+						log.Fatal(err)
+					}
+				}
+			}
+			break
 		}
 	}
 }
