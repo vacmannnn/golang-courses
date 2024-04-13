@@ -34,10 +34,10 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	goroutineNum, err := getGoroutinesNum()
-	if err != nil {
-		log.Println(err)
-	}
+	goroutineNum := 500
+	// if err != nil {
+	// 	log.Println(err)
+	// }
 
 	// read existed DB to simplify downloading
 	myDB := database.NewDB(conf.DBFile)
@@ -72,7 +72,7 @@ func main() {
 
 		curComics = <-comicsChan
 		if curComics.Url != "" {
-			if err = writeComicsWithID(curComics, myDB); err != nil {
+			if err = writeComicsWithID(curComics, &myDB); err != nil {
 				log.Fatal(err)
 			}
 		} else {
@@ -83,7 +83,7 @@ func main() {
 				if curComics.Url == "" {
 					continue
 				}
-				if err = writeComicsWithID(curComics, myDB); err != nil {
+				if err = writeComicsWithID(curComics, &myDB); err != nil {
 					log.Fatal(err)
 				}
 			}
@@ -111,7 +111,7 @@ func worker(downloader xkcd.ComicsDownloader, comics map[int]core.ComicsDescript
 	}
 }
 
-func writeComicsWithID(comicsWID comicsDescriptWithID, db database.DataBase) error {
+func writeComicsWithID(comicsWID comicsDescriptWithID, db *database.DataBase) error {
 	var comics = make(map[int]core.ComicsDescript)
 	comics[comicsWID.id] = comicsWID.ComicsDescript
 	return db.Write(comics)
