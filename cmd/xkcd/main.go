@@ -53,6 +53,7 @@ func main() {
 	}
 	log.Printf("%d comics in base", len(comicsToJSON))
 
+	// init downloader with channels
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 	comicsIDChan := make(chan int, goroutineNum)
 	comicsChan := make(chan comicsDescriptWithID, goroutineNum)
@@ -60,11 +61,13 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	// launch worker pool
 	for range goroutineNum {
 		go worker(downloader, comicsToJSON, comicsIDChan, comicsChan)
 	}
 
 	var curComics comicsDescriptWithID
+	// download comics till no error
 	for i := 1; ; i++ {
 		// send in advance bunch of ID to optimize downloading
 		if i%goroutineNum == 1 {

@@ -33,7 +33,7 @@ func NewComicsDownloader(comicsURL string) ComicsDownloader {
 	return ComicsDownloader{comicsURL: comicsURL}
 }
 
-// TODO: descript
+// GetComicsFromID downloads comics with given ID. Returns its picture url, transcript and id.
 func (c *ComicsDownloader) GetComicsFromID(comicsID int) (core.ComicsDescript, int, error) {
 	if comicsID == 404 {
 		return core.ComicsDescript{Url: "https://xkcd.com/404", Keywords: nil}, comicsID, nil
