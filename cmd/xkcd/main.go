@@ -155,5 +155,8 @@ func getGoroutinesNum() (int, error) {
 		return defaultValue, err
 	}
 
+	if obj["goroutines"] == 0 {
+		obj["goroutines"] = defaultValue
+	}
 	return obj["goroutines"], nil
 }
