@@ -7,4 +7,4 @@ type ComicsDescript struct {
 	Keywords []string `json:"keywords"`
 }
 
-const MaxWaitTime = time.Second * 3
+const MaxWaitTime = time.Second * 5
