@@ -9,6 +9,8 @@ import (
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -49,13 +51,14 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-
 	log.Printf("%d comics in base", len(comicsToJSON))
 
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
-
 	comicsIDChan := make(chan int, goroutineNum)
 	comicsChan := make(chan comicsDescriptWithID, goroutineNum)
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	for range goroutineNum {
 		go worker(downloader, comicsToJSON, comicsIDChan, comicsChan)
@@ -71,7 +74,7 @@ func main() {
 		}
 
 		curComics = <-comicsChan
-		if curComics.Url != "" {
+		if curComics.Url != "" && len(sigs) == 0 {
 			if err = writeComicsWithID(curComics, &myDB); err != nil {
 				log.Fatal(err)
 			}
