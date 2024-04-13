@@ -34,10 +34,10 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	goroutineNum := 500
-	// if err != nil {
-	// 	log.Println(err)
-	// }
+	goroutineNum, err := getGoroutinesNum()
+	if err != nil {
+		log.Println(err)
+	}
 
 	// read existed DB to simplify downloading
 	myDB := database.NewDB(conf.DBFile)
@@ -138,18 +138,16 @@ func newConfig(configPath string) (*Config, error) {
 
 func getGoroutinesNum() (int, error) {
 	defaultValue := 500
-	file, err := os.Open("parallel")
+	obj := make(map[string]int)
+
+	yamlFile, err := os.ReadFile("parallel")
 	if err != nil {
 		return defaultValue, err
 	}
-	defer func(file *os.File) {
-		_ = file.Close()
-	}(file)
-
-	d := yaml.NewDecoder(file)
-	if err = d.Decode(&defaultValue); err != nil {
-		return 500, err
+	err = yaml.Unmarshal(yamlFile, obj)
+	if err != nil {
+		return defaultValue, err
 	}
 
-	return defaultValue, nil
+	return obj["goroutines"], nil
 }

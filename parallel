@@ -1,2 +1,2 @@
-goroutinesNum:
-    500
+goroutines:
+  100
