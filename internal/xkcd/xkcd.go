@@ -61,6 +61,6 @@ func (c *ComicsDownloader) GetComicsFromID(comicsID int) (core.ComicsDescript, i
 		return core.ComicsDescript{}, comicsID, err
 	}
 
-	keywords := strings.Split(fulComics.Transcript, " ")
+	keywords := strings.Split(fulComics.Transcript+fulComics.Alt, " ")
 	return core.ComicsDescript{Url: fulComics.ImgURL, Keywords: keywords}, fulComics.Num, nil
 }
