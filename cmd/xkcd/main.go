@@ -64,8 +64,8 @@ func main() {
 
 	// launch worker pool
 	for range goroutineNum {
+		wg.Add(1)
 		go func() {
-			wg.Add(1)
 			worker(downloader, comicsToJSON, comicsIDChan, comicsChan)
 			wg.Done()
 		}()
