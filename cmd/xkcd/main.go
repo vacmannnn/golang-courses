@@ -1,20 +1,131 @@
 package main
 
 import (
-	"courses/pkg/database"
+	"courses/internal/core"
+	"courses/internal/database"
+	"courses/internal/xkcd"
 	"courses/pkg/words"
-	"courses/pkg/xkcd"
-	"encoding/json"
 	"flag"
-	"fmt"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
 type Config struct {
 	SourceUrl string `yaml:"source_url"`
 	DBFile    string `yaml:"db_file"`
+}
+
+type comicsDescriptWithID struct {
+	core.ComicsDescript
+	id int
+}
+
+func main() {
+	// parse flags
+	var configPath string
+	flag.StringVar(&configPath, "c", "config.yaml", "path to config.yml file")
+	flag.Parse()
+
+	// get config
+	conf, err := newConfig(configPath)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	goroutineNum, err := getGoroutinesNum()
+	if err != nil {
+		log.Println(err)
+	}
+
+	// read existed DB to simplify downloading
+	myDB := database.NewDB(conf.DBFile)
+
+	comicsToJSON, err := myDB.Read()
+	if comicsToJSON == nil {
+		comicsToJSON = make(map[int]core.ComicsDescript, 3000)
+	}
+	if err != nil {
+		log.Println(err)
+	}
+	log.Printf("%d comics in base", len(comicsToJSON))
+
+	// init downloader with channels
+	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
+	comicsIDChan := make(chan int, goroutineNum)
+	comicsChan := make(chan comicsDescriptWithID, goroutineNum)
+	wg := sync.WaitGroup{}
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	// launch worker pool
+	for range goroutineNum {
+		wg.Add(1)
+		go func() {
+			worker(downloader, comicsToJSON, comicsIDChan, comicsChan)
+			wg.Done()
+		}()
+	}
+
+	var curComics comicsDescriptWithID
+	// download comics till no error
+	for i := 1; ; i++ {
+		// send in advance bunch of ID to optimize downloading
+		if i%goroutineNum == 1 {
+			for j := i; j < i+goroutineNum; j++ {
+				comicsIDChan <- j
+			}
+		}
+
+		curComics = <-comicsChan
+		if curComics.Url != "" && len(sigs) == 0 {
+			if err = writeComicsWithID(curComics, &myDB); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			close(comicsIDChan)
+			wg.Wait()
+			close(comicsChan)
+
+			for range len(comicsChan) {
+				curComics = <-comicsChan
+				if curComics.Url == "" {
+					continue
+				}
+				if err = writeComicsWithID(curComics, &myDB); err != nil {
+					log.Fatal(err)
+				}
+			}
+			break
+		}
+	}
+}
+
+func worker(downloader xkcd.ComicsDownloader, comics map[int]core.ComicsDescript, comicsIDChan <-chan int,
+	results chan<- comicsDescriptWithID) {
+	for comID := range comicsIDChan {
+		if comics[comID].Keywords == nil {
+			descript, id, err := downloader.GetComicsFromID(comID)
+			if err != nil {
+				results <- comicsDescriptWithID{id: comID}
+				continue
+			}
+			descript.Keywords = words.StemStringWithClearing(descript.Keywords)
+			results <- comicsDescriptWithID{id: id, ComicsDescript: descript}
+			continue
+		}
+		results <- comicsDescriptWithID{id: comID, ComicsDescript: comics[comID]}
+	}
+}
+
+func writeComicsWithID(comicsWID comicsDescriptWithID, db *database.DataBase) error {
+	var comics = make(map[int]core.ComicsDescript)
+	comics[comicsWID.id] = comicsWID.ComicsDescript
+	return db.Write(comics)
 }
 
 func newConfig(configPath string) (*Config, error) {
@@ -36,99 +147,21 @@ func newConfig(configPath string) (*Config, error) {
 	return config, nil
 }
 
-func main() {
-	// parse flags
-	var numOfComics int
-	flag.IntVar(&numOfComics, "n", -1, "number of comics to save")
-	var configPath string
-	flag.StringVar(&configPath, "config", "config.yaml", "path to config.yml file")
-	var showDownloadedComics bool
-	flag.BoolVar(&showDownloadedComics, "o", false, "show info about downloaded comics")
-	flag.Parse()
+func getGoroutinesNum() (int, error) {
+	defaultValue := 500
+	obj := make(map[string]int)
 
-	// get config
-	conf, err := newConfig(configPath)
+	yamlFile, err := os.ReadFile("parallel")
 	if err != nil {
-		log.Fatal(err)
-		return
+		return defaultValue, err
 	}
-
-	// read existed json to simplify downloading
-	comicsToJSON := make(map[int]xkcd.ComicsDescript)
-	myDB := database.NewDB(conf.DBFile)
-
-	// it's ok if there was an error in file because we are going to create again and overwrite it
-	file, err := myDB.Read()
+	err = yaml.Unmarshal(yamlFile, obj)
 	if err != nil {
-		log.Println(err)
+		return defaultValue, err
 	}
 
-	// if case of any error in unmarshalling whole file will be overwritten due to corruption
-	err = json.Unmarshal(file, &comicsToJSON)
-	lastDownloadedComicsID := 1
-	var indicesSlice []int
-	if err != nil {
-		log.Println(err)
-		lastDownloadedComicsID = -1
-	} else {
-		for k, v := range comicsToJSON {
-			// newest comics has no keywords
-			if v.Keywords == nil && (k < numOfComics || numOfComics == -1) {
-				indicesSlice = append(indicesSlice, k)
-			}
-			lastDownloadedComicsID = max(lastDownloadedComicsID, k)
-		}
+	if obj["goroutines"] == 0 {
+		obj["goroutines"] = defaultValue
 	}
-
-	// download needed
-	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
-	var comics map[int]xkcd.ComicsDescript
-
-	// case when there was no DB and we need to download all
-	if len(indicesSlice) == 0 && lastDownloadedComicsID == -1 {
-		comics, err = downloader.GetComicsFromSite([]int{})
-	} else {
-		for i := lastDownloadedComicsID; i <= numOfComics; i++ {
-			indicesSlice = append(indicesSlice, i)
-		}
-		if len(indicesSlice) != 0 && (lastDownloadedComicsID <= numOfComics || numOfComics == -1) {
-			comics, err = downloader.GetComicsFromSite(indicesSlice)
-		}
-	}
-	if err != nil {
-		log.Println(err)
-		if comics == nil {
-			return
-		}
-	}
-	for k, v := range comics {
-		v.Keywords = words.StemStringWithClearing(v.Keywords)
-		comicsToJSON[k] = v
-	}
-
-	// show if needed
-	if showDownloadedComics {
-		if numOfComics == -1 {
-			numOfComics = lastDownloadedComicsID
-		}
-		for i := 1; i <= numOfComics; i++ {
-			fmt.Printf("id - %d, keywords - %s, url - %s\n", i, comicsToJSON[i].Keywords,
-				comicsToJSON[i].Url)
-		}
-	}
-
-	// load to JSON
-	bytes, err := marshallComics(comicsToJSON)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	if err = myDB.Write(bytes); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func marshallComics(comicsToJSON map[int]xkcd.ComicsDescript) ([]byte, error) {
-	return json.MarshalIndent(comicsToJSON, "", " ")
+	return obj["goroutines"], nil
 }
