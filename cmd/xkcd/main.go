@@ -10,8 +10,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
-	"time"
 )
 
 type Config struct {
@@ -57,13 +57,18 @@ func main() {
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 	comicsIDChan := make(chan int, goroutineNum)
 	comicsChan := make(chan comicsDescriptWithID, goroutineNum)
+	wg := sync.WaitGroup{}
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	// launch worker pool
 	for range goroutineNum {
-		go worker(downloader, comicsToJSON, comicsIDChan, comicsChan)
+		go func() {
+			wg.Add(1)
+			worker(downloader, comicsToJSON, comicsIDChan, comicsChan)
+			wg.Done()
+		}()
 	}
 
 	var curComics comicsDescriptWithID
@@ -82,8 +87,10 @@ func main() {
 				log.Fatal(err)
 			}
 		} else {
-			// wait till we get all comics from site
-			time.Sleep(core.MaxWaitTime)
+			close(comicsIDChan)
+			wg.Wait()
+			close(comicsChan)
+
 			for range len(comicsChan) {
 				curComics = <-comicsChan
 				if curComics.Url == "" {
@@ -93,8 +100,6 @@ func main() {
 					log.Fatal(err)
 				}
 			}
-			close(comicsIDChan)
-			close(comicsChan)
 			break
 		}
 	}
