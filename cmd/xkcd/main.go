@@ -68,15 +68,40 @@ func main() {
 	}
 
 	index := make(map[string][]int)
+	var doc []string
 	for k, v := range comics {
-		for _, token := range v.Keywords {
-			index[token] = append(index[token], k)
+		doc = slices.Concat(doc, v.Keywords)
+		for i, token := range v.Keywords {
+			if !slices.Contains(v.Keywords[:i], token) {
+				index[token] = append(index[token], k)
+			}
 		}
 	}
 	res := findByIndex(index, clearedInput)
-	for i := 0; i < min(len(res), 10); i++ {
+	for i := 0; i < min(10, len(res)); i++ {
 		fmt.Println(res[i], comics[res[i].id].Url)
 	}
+	res = findByComics(comics, clearedInput)
+	for i := 0; i < min(10, len(res)); i++ {
+		fmt.Println(res[i], comics[res[i].id].Url)
+	}
+}
+
+func findByComics(comics map[int]core.ComicsDescript, input []string) []goodComics {
+	var res []goodComics
+	for id, v := range comics {
+		var numOfWords int
+		for _, word := range input {
+			if slices.Contains(v.Keywords, word) {
+				numOfWords++
+			}
+		}
+		res = append(res, goodComics{id: id, numOfKeywords: numOfWords})
+	}
+	slices.SortFunc(res, func(a, b goodComics) int {
+		return cmp.Compare(a.numOfKeywords, b.numOfKeywords) * (-1)
+	})
+	return res
 }
 
 func findByIndex(index map[string][]int, input []string) []goodComics {
