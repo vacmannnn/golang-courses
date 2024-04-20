@@ -4,14 +4,12 @@ import (
 	"courses/internal/core"
 	"courses/internal/database"
 	"courses/internal/xkcd"
-	"courses/pkg/words"
 	"flag"
+	"fmt"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
-	"os/signal"
-	"sync"
-	"syscall"
+	"time"
 )
 
 type Config struct {
@@ -44,88 +42,34 @@ func main() {
 	// read existed DB to simplify downloading
 	myDB := database.NewDB(conf.DBFile)
 
-	comicsToJSON, err := myDB.Read()
-	if comicsToJSON == nil {
-		comicsToJSON = make(map[int]core.ComicsDescript, 3000)
+	comics, err := myDB.Read()
+	if comics == nil {
+		comics = make(map[int]core.ComicsDescript, 3000)
 	}
 	if err != nil {
 		log.Println(err)
 	}
-	log.Printf("%d comics in base", len(comicsToJSON))
-
-	// init downloader with channels
+	log.Printf("%d comics in base", len(comics))
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
-	comicsIDChan := make(chan int, goroutineNum)
-	comicsChan := make(chan comicsDescriptWithID, goroutineNum)
-	wg := sync.WaitGroup{}
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	// launch worker pool
-	for range goroutineNum {
-		wg.Add(1)
-		go func() {
-			worker(downloader, comicsToJSON, comicsIDChan, comicsChan)
-			wg.Done()
-		}()
+	comics, err = fillMissedComics(goroutineNum, comics, myDB, downloader)
+	if err != nil {
+		log.Println(err)
 	}
 
-	var curComics comicsDescriptWithID
-	// download comics till no error
-	for i := 1; ; i++ {
-		// send in advance bunch of ID to optimize downloading
-		if i%goroutineNum == 1 {
-			for j := i; j < i+goroutineNum; j++ {
-				comicsIDChan <- j
-			}
-		}
-
-		curComics = <-comicsChan
-		if curComics.Url != "" && len(sigs) == 0 {
-			if err = writeComicsWithID(curComics, &myDB); err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			close(comicsIDChan)
-			wg.Wait()
-			close(comicsChan)
-
-			for range len(comicsChan) {
-				curComics = <-comicsChan
-				if curComics.Url == "" {
-					continue
-				}
-				if err = writeComicsWithID(curComics, &myDB); err != nil {
-					log.Fatal(err)
-				}
-			}
-			break
+	index := make(map[string][]int)
+	for k, v := range comics {
+		for _, token := range v.Keywords {
+			index[token] = append(index[token], k)
 		}
 	}
-}
-
-func worker(downloader xkcd.ComicsDownloader, comics map[int]core.ComicsDescript, comicsIDChan <-chan int,
-	results chan<- comicsDescriptWithID) {
-	for comID := range comicsIDChan {
-		if comics[comID].Keywords == nil {
-			descript, id, err := downloader.GetComicsFromID(comID)
-			if err != nil {
-				results <- comicsDescriptWithID{id: comID}
-				continue
-			}
-			descript.Keywords = words.StemStringWithClearing(descript.Keywords)
-			results <- comicsDescriptWithID{id: id, ComicsDescript: descript}
-			continue
+	fmt.Println(len(index))
+	for k, v := range index {
+		if len(v) > 2 {
+			fmt.Println(k, v)
+			time.Sleep(time.Second)
 		}
-		results <- comicsDescriptWithID{id: comID, ComicsDescript: comics[comID]}
 	}
-}
-
-func writeComicsWithID(comicsWID comicsDescriptWithID, db *database.DataBase) error {
-	var comics = make(map[int]core.ComicsDescript)
-	comics[comicsWID.id] = comicsWID.ComicsDescript
-	return db.Write(comics)
 }
 
 func newConfig(configPath string) (*Config, error) {
