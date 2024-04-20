@@ -10,9 +10,9 @@ import (
 // List of words probably will be changed
 func clearInputFromStopWords(inputString []string) []string {
 	var clearedStrings []string
-	stopwordsMapping, _ := sw.NewStopwordsMapping()
+	stopWordsMapping, _ := sw.NewStopwordsMapping()
 	for _, str := range inputString {
-		newStr := stopwordsMapping.ClearString(str)
+		newStr := stopWordsMapping.ClearString(str)
 		if newStr != "" {
 			clearedStrings = append(clearedStrings, newStr)
 		}
