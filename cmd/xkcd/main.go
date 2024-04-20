@@ -31,6 +31,8 @@ func main() {
 	flag.StringVar(&configPath, "c", "config.yaml", "path to config.yml file")
 	var inputString string
 	flag.StringVar(&inputString, "s", "", "string to find")
+	var byIndex bool
+	flag.BoolVar(&byIndex, "i", false, "find comics by index")
 	flag.Parse()
 	if inputString == "" {
 		// TODO
@@ -77,11 +79,12 @@ func main() {
 			}
 		}
 	}
-	res := findByIndex(index, clearedInput)
-	for i := 0; i < min(10, len(res)); i++ {
-		fmt.Println(res[i], comics[res[i].id].Url)
+	var res []goodComics
+	if byIndex {
+		res = findByIndex(index, clearedInput)
+	} else {
+		res = findByComics(comics, clearedInput)
 	}
-	res = findByComics(comics, clearedInput)
 	for i := 0; i < min(10, len(res)); i++ {
 		fmt.Println(res[i], comics[res[i].id].Url)
 	}
