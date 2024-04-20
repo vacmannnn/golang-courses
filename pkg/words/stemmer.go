@@ -21,18 +21,5 @@ func stemSingleLanguage(myStemmer stemmer, input []string, language string) []st
 			res = append(res, newStr)
 		}
 	}
-	return removeDuplicateStrings(res)
-}
-
-func removeDuplicateStrings(strings []string) []string {
-	var list []string
-	keys := make(map[string]bool)
-
-	for _, str := range strings {
-		if _, value := keys[str]; !value {
-			keys[str] = true
-			list = append(list, str)
-		}
-	}
-	return list
+	return res
 }
