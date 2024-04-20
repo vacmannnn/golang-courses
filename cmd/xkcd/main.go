@@ -1,15 +1,18 @@
 package main
 
 import (
+	"cmp"
 	"courses/internal/core"
 	"courses/internal/database"
 	"courses/internal/xkcd"
+	"courses/pkg/words"
 	"flag"
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
-	"time"
+	"slices"
+	"strings"
 )
 
 type Config struct {
@@ -26,7 +29,14 @@ func main() {
 	// parse flags
 	var configPath string
 	flag.StringVar(&configPath, "c", "config.yaml", "path to config.yml file")
+	var inputString string
+	flag.StringVar(&inputString, "s", "", "string to find")
 	flag.Parse()
+	if inputString == "" {
+		// TODO
+		log.Println("empty input")
+	}
+	clearedInput := words.StemStringWithClearing(strings.Split(inputString, " "))
 
 	// get config
 	conf, err := newConfig(configPath)
@@ -63,13 +73,32 @@ func main() {
 			index[token] = append(index[token], k)
 		}
 	}
-	fmt.Println(len(index))
-	for k, v := range index {
-		if len(v) > 2 {
-			fmt.Println(k, v)
-			time.Sleep(time.Second)
+	res := findByIndex(index, clearedInput)
+	for i := 0; i < min(len(res), 10); i++ {
+		fmt.Println(res[i], comics[res[i].id].Url)
+	}
+}
+
+func findByIndex(index map[string][]int, input []string) []goodComics {
+	wasFound := make(map[int]int)
+	for _, keywords := range input {
+		for _, comicsID := range index[keywords] {
+			wasFound[comicsID]++
 		}
 	}
+	var res []goodComics
+	for k, v := range wasFound {
+		res = append(res, goodComics{id: k, numOfKeywords: v})
+	}
+	slices.SortFunc(res, func(a, b goodComics) int {
+		return cmp.Compare(a.numOfKeywords, b.numOfKeywords) * (-1)
+	})
+	return res
+}
+
+type goodComics struct {
+	id            int
+	numOfKeywords int
 }
 
 func newConfig(configPath string) (*Config, error) {
