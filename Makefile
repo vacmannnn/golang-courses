@@ -1,5 +1,5 @@
 build:
-	@go build -o "xkcd" cmd/xkcd/main.go
+	@go build -C cmd/xkcd -o "../../xkcd"
 
 clean:
 	rm xkcd
