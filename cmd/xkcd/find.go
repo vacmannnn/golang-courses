@@ -40,7 +40,6 @@ func findByIndex(index map[string][]int, input []string) []goodComics {
 	return res
 }
 
-// TODO: descript
 type goodComics struct {
 	id            int
 	numOfKeywords int
