@@ -29,8 +29,7 @@ func main() {
 	flag.BoolVar(&byIndex, "i", false, "find comics by index")
 	flag.Parse()
 	if inputString == "" {
-		// TODO
-		log.Println("empty input")
+		log.Println("Input string shouldn't be empty")
 	}
 	clearedInput := words.StemStringWithClearing(strings.Split(inputString, " "))
 
