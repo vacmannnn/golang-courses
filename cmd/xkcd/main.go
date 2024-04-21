@@ -5,9 +5,11 @@ import (
 	"courses/internal/database"
 	"courses/internal/xkcd"
 	"courses/pkg/words"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"slices"
 	"strings"
 )
@@ -71,6 +73,16 @@ func main() {
 			}
 		}
 	}
+	file, err := json.MarshalIndent(index, "", " ")
+	if err != nil {
+		log.Println(err)
+	}
+
+	err = os.WriteFile("index.json", file, 0644)
+	if err != nil {
+		log.Println(err)
+	}
+
 	var res []goodComics
 	if byIndex {
 		res = findByIndex(index, clearedInput)
