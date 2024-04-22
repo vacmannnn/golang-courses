@@ -15,7 +15,9 @@ func findByComics(comics map[int]core.ComicsDescript, input []string) []goodComi
 				numOfWords++
 			}
 		}
-		res = append(res, goodComics{id: id, numOfKeywords: numOfWords})
+		if numOfWords != 0 {
+			res = append(res, goodComics{id: id, numOfKeywords: numOfWords})
+		}
 	}
 	slices.SortFunc(res, func(a, b goodComics) int {
 		return cmp.Compare(a.numOfKeywords, b.numOfKeywords) * (-1)
@@ -32,7 +34,9 @@ func findByIndex(index map[string][]int, input []string) []goodComics {
 	}
 	var res []goodComics
 	for k, v := range wasFound {
-		res = append(res, goodComics{id: k, numOfKeywords: v})
+		if v != 0 {
+			res = append(res, goodComics{id: k, numOfKeywords: v})
+		}
 	}
 	slices.SortFunc(res, func(a, b goodComics) int {
 		return cmp.Compare(a.numOfKeywords, b.numOfKeywords) * (-1)
