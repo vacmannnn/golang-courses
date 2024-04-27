@@ -5,18 +5,36 @@ import (
 	"courses/internal/database"
 	"courses/internal/xkcd"
 	"courses/pkg/words"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 )
 
-func fillMissedComics(goroutineNum int, comics map[int]core.ComicsDescript,
-	db database.DataBase, downloader xkcd.ComicsDownloader) (map[int]core.ComicsDescript, error) {
+type filler struct {
+	goroutineNum int
+	comics       map[int]core.ComicsDescript
+	db           database.DataBase
+	downloader   xkcd.ComicsDownloader
+	logger       slog.Logger
+}
 
-	comicsIDChan := make(chan int, goroutineNum)
-	comicsChan := make(chan comicsDescriptWithID, goroutineNum)
+func newFiller(goroutineNum int, comics map[int]core.ComicsDescript, db database.DataBase,
+	downloader xkcd.ComicsDownloader, logger slog.Logger) filler {
+	return filler{
+		goroutineNum: goroutineNum,
+		comics:       comics,
+		db:           db,
+		downloader:   downloader,
+		logger:       logger,
+	}
+}
+
+func (f *filler) fillMissedComics() (map[int]core.ComicsDescript, error) {
+
+	comicsIDChan := make(chan int, f.goroutineNum)
+	comicsChan := make(chan comicsDescriptWithID, f.goroutineNum)
 	wg := sync.WaitGroup{}
 	var mt sync.Mutex
 
@@ -24,10 +42,10 @@ func fillMissedComics(goroutineNum int, comics map[int]core.ComicsDescript,
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	// launch worker pool
-	for range goroutineNum {
+	for range f.goroutineNum {
 		wg.Add(1)
 		go func() {
-			worker(downloader, comics, comicsIDChan, comicsChan, &mt)
+			f.worker(comicsIDChan, comicsChan, &mt)
 			wg.Done()
 		}()
 	}
@@ -36,16 +54,16 @@ func fillMissedComics(goroutineNum int, comics map[int]core.ComicsDescript,
 	// download comics till no error
 	for i := 1; ; i++ {
 		// send in advance bunch of ID to optimize downloading
-		if i%goroutineNum == 1 {
-			for j := i; j < i+goroutineNum; j++ {
+		if i%f.goroutineNum == 1 {
+			for j := i; j < i+f.goroutineNum; j++ {
 				comicsIDChan <- j
 			}
 		}
 
 		curComics = <-comicsChan
 		if curComics.Url != "" && len(sigs) == 0 {
-			if err := writeComicsWithID(curComics, &db); err != nil {
-				return comics, err
+			if err := f.writeComicsWithID(curComics); err != nil {
+				return f.comics, err
 			}
 		} else {
 			close(comicsIDChan)
@@ -57,39 +75,40 @@ func fillMissedComics(goroutineNum int, comics map[int]core.ComicsDescript,
 				if curComics.Url == "" {
 					continue
 				}
-				if err := writeComicsWithID(curComics, &db); err != nil {
-					return comics, err
+				if err := f.writeComicsWithID(curComics); err != nil {
+					return f.comics, err
 				}
 			}
 			break
 		}
 	}
-	return comics, nil
+	return f.comics, nil
 }
 
-func worker(downloader xkcd.ComicsDownloader, comics map[int]core.ComicsDescript, comicsIDChan <-chan int,
-	results chan<- comicsDescriptWithID, mt *sync.Mutex) {
+func (f *filler) worker(comicsIDChan <-chan int, results chan<- comicsDescriptWithID, mt *sync.Mutex) {
 	for comID := range comicsIDChan {
-		if comics[comID].Keywords == nil {
-			descript, id, err := downloader.GetComicsFromID(comID)
+		if f.comics[comID].Keywords == nil {
+			descript, id, err := f.downloader.GetComicsFromID(comID)
 			if err != nil {
-				log.Println(err)
-				results <- comicsDescriptWithID{id: comID}
+				f.logger.Debug(err.Error(), "comics ID", id)
+				results <- comicsDescriptWithID{id: id}
 				continue
 			}
+			f.logger.Info("writing comics", "id", id)
 			descript.Keywords = words.StemStringWithClearing(descript.Keywords)
 			results <- comicsDescriptWithID{id: id, ComicsDescript: descript}
 			mt.Lock()
-			comics[id] = descript
+			f.comics[id] = descript
 			mt.Unlock()
 			continue
 		}
-		results <- comicsDescriptWithID{id: comID, ComicsDescript: comics[comID]}
+		f.logger.Info("writing comics", "id", comID)
+		results <- comicsDescriptWithID{id: comID, ComicsDescript: f.comics[comID]}
 	}
 }
 
-func writeComicsWithID(comicsWID comicsDescriptWithID, db *database.DataBase) error {
+func (f *filler) writeComicsWithID(comicsWID comicsDescriptWithID) error {
 	var comics = make(map[int]core.ComicsDescript)
 	comics[comicsWID.id] = comicsWID.ComicsDescript
-	return db.Write(comics)
+	return f.db.Write(comics)
 }
