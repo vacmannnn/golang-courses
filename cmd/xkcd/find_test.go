@@ -11,7 +11,7 @@ import (
 )
 
 func BenchmarkDiffMethToSearch(b *testing.B) {
-	conf, _ := newConfig("../../config.yaml")
+	conf, _ := getConfig("../../config.yaml")
 
 	myDB := database.NewDB(conf.DBFile)
 
