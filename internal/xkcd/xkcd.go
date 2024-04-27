@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -48,7 +47,6 @@ func (c *ComicsDownloader) GetComicsFromID(comicsID int) (core.ComicsDescript, i
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(resp.Body)
-	log.Println(comicsURL)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

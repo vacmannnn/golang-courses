@@ -6,9 +6,8 @@ import (
 	"courses/internal/xkcd"
 	"courses/pkg/words"
 	"encoding/json"
-	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"slices"
 	"strings"
@@ -20,28 +19,28 @@ type comicsDescriptWithID struct {
 }
 
 func main() {
-	// parse flags
-	var configPath string
-	flag.StringVar(&configPath, "c", "config.yaml", "path to config.yml file")
-	var inputString string
-	flag.StringVar(&inputString, "s", "", "string to find")
-	var byIndex bool
-	flag.BoolVar(&byIndex, "i", false, "find comics by index")
-	flag.Parse()
+	configPath, inputString, byIndex, loggerLevel := getFlags()
+
+	opts := &slog.HandlerOptions{
+		Level: loggerLevel,
+	}
+	handler := slog.NewJSONHandler(os.Stdout, opts)
+	logger := slog.New(handler)
+
 	if inputString == "" {
-		log.Println("Input string shouldn't be empty")
+		logger.Warn("Input string shouldn't be empty")
 	}
 	clearedInput := words.StemStringWithClearing(strings.Split(inputString, " "))
 
-	// get config
-	conf, err := newConfig(configPath)
+	conf, err := getConfig(configPath)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err.Error())
 		return
 	}
+
 	goroutineNum, err := getGoroutinesNum()
 	if err != nil {
-		log.Println(err)
+		logger.Error(err.Error())
 	}
 
 	// read existed DB to simplify downloading
@@ -52,16 +51,18 @@ func main() {
 		comics = make(map[int]core.ComicsDescript, 3000)
 	}
 	if err != nil {
-		log.Println(err)
+		logger.Error(err.Error())
 	}
-	log.Printf("%d comics in base", len(comics))
+	logger.Info("base opened", "comics in base", len(comics))
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 
-	comics, err = fillMissedComics(goroutineNum, comics, myDB, downloader)
+	f := newFiller(goroutineNum, comics, myDB, downloader, *logger)
+	comics, err = f.fillMissedComics()
 	if err != nil {
-		log.Println(err)
+		logger.Error(err.Error())
 	}
 
+	// build index
 	index := make(map[string][]int)
 	var doc []string
 	for k, v := range comics {
@@ -72,23 +73,28 @@ func main() {
 			}
 		}
 	}
+
+	// write to index.json
 	file, err := json.MarshalIndent(index, "", " ")
 	if err != nil {
-		log.Println(err)
+		logger.Warn(err.Error())
 	}
 
 	err = os.WriteFile("index.json", file, 0644)
 	if err != nil {
-		log.Println(err)
+		logger.Warn(err.Error())
 	}
 
+	// find comics
 	var res []goodComics
 	if byIndex {
 		res = findByIndex(index, clearedInput)
 	} else {
 		res = findByComics(comics, clearedInput)
 	}
-	for i := 0; i < min(10, len(res)); i++ {
+
+	const maxComicsToShow = 10
+	for i := 0; i < min(maxComicsToShow, len(res)); i++ {
 		fmt.Println(res[i], comics[res[i].id].Url)
 	}
 }

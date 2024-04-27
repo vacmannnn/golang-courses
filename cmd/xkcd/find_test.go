@@ -4,6 +4,8 @@ import (
 	"courses/internal/core"
 	"courses/internal/database"
 	"courses/internal/xkcd"
+	"io"
+	"log/slog"
 	"slices"
 	"strconv"
 	"strings"
@@ -21,7 +23,11 @@ func BenchmarkDiffMethToSearch(b *testing.B) {
 	}
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 
-	comics, _ = fillMissedComics(5, comics, myDB, downloader)
+	opts := &slog.HandlerOptions{}
+	handler := slog.NewJSONHandler(io.Discard, opts)
+	logger := slog.New(handler)
+	comicsFiller := newFiller(100, comics, myDB, downloader, *logger)
+	comics, _ = comicsFiller.fillMissedComics()
 
 	index := make(map[string][]int)
 	var doc []string
