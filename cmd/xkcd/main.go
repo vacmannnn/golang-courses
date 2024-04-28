@@ -6,9 +6,10 @@ import (
 	"courses/internal/xkcd"
 	"courses/pkg/words"
 	"encoding/json"
-	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
+	"reflect"
 	"slices"
 	"strings"
 )
@@ -19,18 +20,13 @@ type comicsDescriptWithID struct {
 }
 
 func main() {
-	configPath, inputString, byIndex, loggerLevel := getFlags()
+	configPath, _, _, loggerLevel := getFlags()
 
 	opts := &slog.HandlerOptions{
 		Level: loggerLevel,
 	}
 	handler := slog.NewJSONHandler(os.Stdout, opts)
 	logger := slog.New(handler)
-
-	if inputString == "" {
-		logger.Warn("Input string shouldn't be empty")
-	}
-	clearedInput := words.StemStringWithClearing(strings.Split(inputString, " "))
 
 	conf, err := getConfig(configPath)
 	if err != nil {
@@ -85,16 +81,44 @@ func main() {
 		logger.Warn(err.Error())
 	}
 
-	// find comics
-	var res []goodComics
-	if byIndex {
-		res = findByIndex(index, clearedInput)
-	} else {
-		res = findByComics(comics, clearedInput)
-	}
-
 	const maxComicsToShow = 10
-	for i := 0; i < min(maxComicsToShow, len(res)); i++ {
-		fmt.Println(res[i], comics[res[i].id].Url)
-	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /pics", func(wr http.ResponseWriter, r *http.Request) {
+		comicsKeywords := r.URL.Query().Get("search")
+		clearedKeywords := words.StemStringWithClearing(strings.Split(comicsKeywords, " "))
+		res := findByIndex(index, clearedKeywords)
+		var urls []string
+		for i := 0; i < min(maxComicsToShow, len(res)); i++ {
+			urls = append(urls, comics[res[i].id].Url)
+		}
+		data, _ := json.Marshal(urls)
+		_, _ = wr.Write(data)
+	})
+	mux.HandleFunc("POST /update", func(wr http.ResponseWriter, r *http.Request) {
+		updatedComics, err := f.fillMissedComics()
+		if err != nil {
+			// TODO
+		}
+		eq := reflect.DeepEqual(updatedComics, comics)
+		var data []byte
+		var n int
+		if !eq {
+			for k, v := range updatedComics {
+				if slices.Equal(comics[k].Keywords, v.Keywords) {
+					n++
+				}
+			}
+			// TODO: shared memory, case with everyday update
+			comics = updatedComics
+		}
+		diff := map[string]int{
+			"new": n, "total": len(updatedComics),
+		}
+		data, err = json.Marshal(diff)
+		if err != nil {
+			// TODO
+		}
+		wr.Write(data)
+	})
+	http.ListenAndServe(":8080", mux)
 }
