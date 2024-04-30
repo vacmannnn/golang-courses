@@ -1,9 +1,8 @@
-package main
+package xkcd
 
 import (
 	"courses/internal/core"
 	"courses/internal/database"
-	"courses/internal/xkcd"
 	"courses/pkg/words"
 	"log/slog"
 	"os"
@@ -16,12 +15,17 @@ type filler struct {
 	goroutineNum int
 	comics       map[int]core.ComicsDescript
 	db           database.DataBase
-	downloader   xkcd.ComicsDownloader
+	downloader   ComicsDownloader
 	logger       slog.Logger
 }
 
-func newFiller(goroutineNum int, comics map[int]core.ComicsDescript, db database.DataBase,
-	downloader xkcd.ComicsDownloader, logger slog.Logger) filler {
+type comicsDescriptWithID struct {
+	core.ComicsDescript
+	id int
+}
+
+func NewFiller(goroutineNum int, comics map[int]core.ComicsDescript, db database.DataBase,
+	downloader ComicsDownloader, logger slog.Logger) filler {
 	return filler{
 		goroutineNum: goroutineNum,
 		comics:       comics,
@@ -31,7 +35,7 @@ func newFiller(goroutineNum int, comics map[int]core.ComicsDescript, db database
 	}
 }
 
-func (f *filler) fillMissedComics() (map[int]core.ComicsDescript, error) {
+func (f *filler) FillMissedComics() (map[int]core.ComicsDescript, error) {
 
 	comicsIDChan := make(chan int, f.goroutineNum)
 	comicsChan := make(chan comicsDescriptWithID, f.goroutineNum)

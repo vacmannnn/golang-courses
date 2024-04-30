@@ -2,8 +2,9 @@ package main
 
 import (
 	"courses/internal/core"
+	"courses/internal/core/find"
+	"courses/internal/core/xkcd"
 	"courses/internal/database"
-	"courses/internal/xkcd"
 	"io"
 	"log/slog"
 	"slices"
@@ -46,13 +47,13 @@ func BenchmarkDiffMethToSearch(b *testing.B) {
 		comicsName := "findByIndex-" + strconv.Itoa(len(str))
 		b.Run(comicsName, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				findByIndex(index, strings.Split(str, " "))
+				find.ByIndex(index, strings.Split(str, " "))
 			}
 		})
 		comicsName = "findByComics-" + strconv.Itoa(len(str))
 		b.Run(comicsName, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				findByComics(comics, strings.Split(str, " "))
+				find.ByComics(comics, strings.Split(str, " "))
 			}
 		})
 	}
