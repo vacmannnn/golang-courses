@@ -8,3 +8,5 @@ type ComicsDescript struct {
 }
 
 const MaxWaitTime = time.Second * 5
+
+const MaxComicsToShow = 10

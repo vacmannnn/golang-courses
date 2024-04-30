@@ -12,25 +12,6 @@ type Config struct {
 	DBFile    string `yaml:"db_file"`
 }
 
-func getFlags() (string, string, bool, slog.Level) {
-	// parse flags
-	var configPath string
-	flag.StringVar(&configPath, "c", "config.yaml", "path to config.yml file")
-	var inputString string
-	flag.StringVar(&inputString, "s", "", "string to find")
-	var byIndex bool
-	flag.BoolVar(&byIndex, "i", false, "find comics by index")
-	var showDebugMsg bool
-	flag.BoolVar(&showDebugMsg, "d", false, "show debug messages in log")
-	flag.Parse()
-
-	level := slog.LevelInfo
-	if showDebugMsg {
-		level = slog.LevelDebug
-	}
-	return configPath, inputString, byIndex, level
-}
-
 func getConfig(configPath string) (*Config, error) {
 	config := &Config{}
 
@@ -48,6 +29,25 @@ func getConfig(configPath string) (*Config, error) {
 	}
 
 	return config, nil
+}
+
+func getFlags() (string, string, bool, slog.Level) {
+	// parse flags
+	var configPath string
+	flag.StringVar(&configPath, "c", "config.yaml", "path to config.yml file")
+	var inputString string
+	flag.StringVar(&inputString, "s", "", "string to find")
+	var byIndex bool
+	flag.BoolVar(&byIndex, "i", false, "find comics by index")
+	var showDebugMsg bool
+	flag.BoolVar(&showDebugMsg, "d", false, "show debug messages in log")
+	flag.Parse()
+
+	level := slog.LevelInfo
+	if showDebugMsg {
+		level = slog.LevelDebug
+	}
+	return configPath, inputString, byIndex, level
 }
 
 func getGoroutinesNum() (int, error) {
