@@ -14,7 +14,7 @@ func CreateServeMux(finder find.Finder) *http.ServeMux {
 	mux.HandleFunc("GET /pics", func(wr http.ResponseWriter, r *http.Request) {
 		comicsKeywords := r.URL.Query().Get("search")
 		clearedKeywords := words.StemStringWithClearing(strings.Split(comicsKeywords, " "))
-		res := finder.ByIndex(clearedKeywords)
+		res := finder.FindByIndex(clearedKeywords)
 		comicsToSend := min(len(res), core.MaxComicsToShow)
 		data, _ := json.Marshal(res[:comicsToSend])
 		_, _ = wr.Write(data)
@@ -25,7 +25,10 @@ func CreateServeMux(finder find.Finder) *http.ServeMux {
 		if err != nil {
 			// TODO
 		}
-		wr.Write(data)
+		_, err = wr.Write(data)
+		if err != nil {
+			// TODO
+		}
 	})
 	return mux
 }

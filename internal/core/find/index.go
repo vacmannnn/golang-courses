@@ -7,18 +7,12 @@ import (
 	"slices"
 )
 
-// TODO: подумать над set new filler
 // как-то грустно, что filler внутри себя хранит доступ к БД
 
 type Finder struct {
 	comics map[int]core.ComicsDescript
 	filler xkcd.Filler
 	index  map[string][]int
-}
-
-type goodComics struct {
-	Id            int
-	NumOfKeywords int
 }
 
 func NewFinder(comics map[int]core.ComicsDescript, filler xkcd.Filler) Finder {

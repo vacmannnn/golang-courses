@@ -1,8 +1,7 @@
-package main
+package find
 
 import (
 	"courses/internal/core"
-	"courses/internal/core/find"
 	"courses/internal/core/xkcd"
 	"courses/internal/database"
 	"io"
@@ -14,21 +13,21 @@ import (
 )
 
 func BenchmarkDiffMethToSearch(b *testing.B) {
-	conf, _ := getConfig("../../config.yaml")
-
-	myDB := database.NewDB(conf.DBFile)
+	myDB := database.NewDB("test.json")
 
 	comics, _ := myDB.Read()
 	if comics == nil {
 		comics = make(map[int]core.ComicsDescript, 3000)
 	}
-	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
+
+	sourceUrl := "xkcd.com"
+	downloader := xkcd.NewComicsDownloader(sourceUrl)
 
 	opts := &slog.HandlerOptions{}
 	handler := slog.NewJSONHandler(io.Discard, opts)
 	logger := slog.New(handler)
-	comicsFiller := newFiller(100, comics, myDB, downloader, *logger)
-	comics, _ = comicsFiller.fillMissedComics()
+	comicsFiller := xkcd.NewFiller(100, comics, myDB, downloader, *logger)
+	comics, _ = comicsFiller.FillMissedComics()
 
 	index := make(map[string][]int)
 	var doc []string
@@ -44,16 +43,17 @@ func BenchmarkDiffMethToSearch(b *testing.B) {
 		"cool banana man", "orange box sits under that orange table and takes orange to make orange juice",
 		"funny comics about math"}
 	for _, str := range testString {
-		comicsName := "findByIndex-" + strconv.Itoa(len(str))
+		comicsName := "findFindByIndex-" + strconv.Itoa(len(str))
+		finder := NewFinder(comics, comicsFiller)
 		b.Run(comicsName, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				find.ByIndex(index, strings.Split(str, " "))
+				finder.FindByIndex(strings.Split(str, " "))
 			}
 		})
 		comicsName = "findByComics-" + strconv.Itoa(len(str))
 		b.Run(comicsName, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				find.ByComics(comics, strings.Split(str, " "))
+				finder.findByComics(strings.Split(str, " "))
 			}
 		})
 	}
