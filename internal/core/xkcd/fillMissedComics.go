@@ -11,7 +11,7 @@ import (
 	"syscall"
 )
 
-type filler struct {
+type Filler struct {
 	goroutineNum int
 	comics       map[int]core.ComicsDescript
 	db           database.DataBase
@@ -25,8 +25,8 @@ type comicsDescriptWithID struct {
 }
 
 func NewFiller(goroutineNum int, comics map[int]core.ComicsDescript, db database.DataBase,
-	downloader ComicsDownloader, logger slog.Logger) filler {
-	return filler{
+	downloader ComicsDownloader, logger slog.Logger) Filler {
+	return Filler{
 		goroutineNum: goroutineNum,
 		comics:       comics,
 		db:           db,
@@ -35,7 +35,7 @@ func NewFiller(goroutineNum int, comics map[int]core.ComicsDescript, db database
 	}
 }
 
-func (f *filler) FillMissedComics() (map[int]core.ComicsDescript, error) {
+func (f *Filler) FillMissedComics() (map[int]core.ComicsDescript, error) {
 
 	comicsIDChan := make(chan int, f.goroutineNum)
 	comicsChan := make(chan comicsDescriptWithID, f.goroutineNum)
@@ -89,7 +89,7 @@ func (f *filler) FillMissedComics() (map[int]core.ComicsDescript, error) {
 	return f.comics, nil
 }
 
-func (f *filler) worker(comicsIDChan <-chan int, results chan<- comicsDescriptWithID, mt *sync.Mutex) {
+func (f *Filler) worker(comicsIDChan <-chan int, results chan<- comicsDescriptWithID, mt *sync.Mutex) {
 	for comID := range comicsIDChan {
 		if f.comics[comID].Keywords == nil {
 			descript, id, err := f.downloader.GetComicsFromID(comID)
@@ -111,7 +111,7 @@ func (f *filler) worker(comicsIDChan <-chan int, results chan<- comicsDescriptWi
 	}
 }
 
-func (f *filler) writeComicsWithID(comicsWID comicsDescriptWithID) error {
+func (f *Filler) writeComicsWithID(comicsWID comicsDescriptWithID) error {
 	var comics = make(map[int]core.ComicsDescript)
 	comics[comicsWID.id] = comicsWID.ComicsDescript
 	return f.db.Write(comics)
