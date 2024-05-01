@@ -52,7 +52,7 @@ func main() {
 	}
 
 	// build index
-	finder := find.NewFinder(comics)
+	finder := find.NewFinder(comics, filler)
 	index := finder.GetIndex()
 
 	// write to index.json
