@@ -6,13 +6,12 @@ import (
 	"slices"
 )
 
-// TODO: struct `finder`
-// Было бы круто инкапсулировать индекс, просто сделать структурку, которая получает комиксы и сама строит индекс
-// Комикс можно было бы заапдейтить
+type goodComics struct {
+	Id            int
+	NumOfKeywords int
+}
 
-// И переименовать было бы неплохо
-
-func (f *Finder) ByIndex(input []string) []string {
+func (f *Finder) FindByIndex(input []string) []string {
 	wasFound := make(map[int]int)
 	for _, keywords := range input {
 		for _, comicsID := range f.index[keywords] {
@@ -35,8 +34,8 @@ func (f *Finder) ByIndex(input []string) []string {
 	return urls
 }
 
-// ByComics unused cause of inefficient speed compared to ByIndex
-func (f *Finder) byComics(input []string) []string {
+// findByComics unused cause of inefficient speed compared to FindByIndex
+func (f *Finder) findByComics(input []string) []string {
 	var res []goodComics
 	for id, v := range f.comics {
 		var numOfWords int
