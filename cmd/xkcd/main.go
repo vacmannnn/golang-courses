@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"courses/internal/adapter/handler"
 	"courses/internal/core"
 	"courses/internal/core/filler"
@@ -9,10 +10,11 @@ import (
 	"courses/internal/database"
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -46,9 +48,12 @@ func main() {
 	}
 	logger.Info("base opened", "comics in base", len(comics))
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT)
+	defer stop()
+
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 	comicsFiller := filler.NewFiller(core.GoroutineNum, comics, myDB, downloader, *logger)
-	comics, err = comicsFiller.FillMissedComics()
+	comics, err = comicsFiller.FillMissedComics(ctx)
 	if err != nil {
 		logger.Error(err.Error())
 	}
@@ -71,6 +76,18 @@ func main() {
 	mux := handler.CreateServeMux(finder, logger)
 	portStr := fmt.Sprintf(":%d", port)
 
-	// based on https://quii.gitbook.io/learn-go-with-tests/build-an-application/http-server
-	log.Fatal(http.ListenAndServe(portStr, mux))
+	// based on https://stackoverflow.com/questions/39320025/how-to-stop-http-listenandserve
+	server := &http.Server{Addr: portStr, Handler: mux}
+	go func() {
+		if err = server.ListenAndServe(); err != nil {
+			logger.Debug("server error", "err", err.Error())
+		}
+	}()
+	<-ctx.Done()
+
+	ctx, stop = context.WithTimeout(context.Background(), core.MaxWaitTime)
+	defer stop()
+	if err = server.Shutdown(ctx); err != nil {
+		logger.Debug("server shutdown error", "err", err.Error())
+	}
 }

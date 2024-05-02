@@ -1,6 +1,7 @@
 package find
 
 import (
+	"context"
 	"courses/internal/core"
 	"courses/internal/core/filler"
 	"reflect"
@@ -40,7 +41,7 @@ func (f *Finder) GetIndex() map[string][]int {
 }
 
 func (f *Finder) UpdateComics() (map[string]int, error) {
-	updatedComics, err := f.filler.FillMissedComics()
+	updatedComics, err := f.filler.FillMissedComics(context.Background())
 	if err != nil {
 		return nil, err
 	}
