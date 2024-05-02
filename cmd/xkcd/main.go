@@ -7,13 +7,14 @@ import (
 	"courses/internal/core/xkcd"
 	"courses/internal/database"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 )
 
 func main() {
-	configPath, _, _, loggerLevel := getFlags()
+	configPath, port, loggerLevel := getFlags()
 
 	opts := &slog.HandlerOptions{
 		Level: loggerLevel,
@@ -25,6 +26,10 @@ func main() {
 	if err != nil {
 		logger.Error(err.Error())
 		return
+	}
+	// -1 is default port value if there is no -p flag
+	if port == -1 {
+		port = conf.Port
 	}
 
 	goroutineNum, err := getGoroutinesNum()
@@ -67,5 +72,6 @@ func main() {
 	}
 
 	mux := handler.CreateServeMux(finder)
-	http.ListenAndServe(":8080", mux)
+	portStr := fmt.Sprintf(":%d", port)
+	http.ListenAndServe(portStr, mux)
 }

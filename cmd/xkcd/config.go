@@ -10,6 +10,7 @@ import (
 type Config struct {
 	SourceUrl string `yaml:"source_url"`
 	DBFile    string `yaml:"db_file"`
+	Port      int    `yaml:"port"`
 }
 
 func getConfig(configPath string) (*Config, error) {
@@ -31,14 +32,11 @@ func getConfig(configPath string) (*Config, error) {
 	return config, nil
 }
 
-func getFlags() (string, string, bool, slog.Level) {
-	// parse flags
+func getFlags() (string, int, slog.Level) {
 	var configPath string
 	flag.StringVar(&configPath, "c", "config.yaml", "path to config.yml file")
-	var inputString string
-	flag.StringVar(&inputString, "s", "", "string to find")
-	var byIndex bool
-	flag.BoolVar(&byIndex, "i", false, "find comics by index")
+	var port int
+	flag.IntVar(&port, "p", -1, "server port")
 	var showDebugMsg bool
 	flag.BoolVar(&showDebugMsg, "d", false, "show debug messages in log")
 	flag.Parse()
@@ -47,7 +45,7 @@ func getFlags() (string, string, bool, slog.Level) {
 	if showDebugMsg {
 		level = slog.LevelDebug
 	}
-	return configPath, inputString, byIndex, level
+	return configPath, port, level
 }
 
 func getGoroutinesNum() (int, error) {
