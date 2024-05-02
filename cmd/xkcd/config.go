@@ -47,22 +47,3 @@ func getFlags() (string, int, slog.Level) {
 	}
 	return configPath, port, level
 }
-
-func getGoroutinesNum() (int, error) {
-	defaultValue := 500
-	obj := make(map[string]int)
-
-	yamlFile, err := os.ReadFile("parallel")
-	if err != nil {
-		return defaultValue, err
-	}
-	err = yaml.Unmarshal(yamlFile, obj)
-	if err != nil {
-		return defaultValue, err
-	}
-
-	if obj["goroutines"] == 0 {
-		obj["goroutines"] = defaultValue
-	}
-	return obj["goroutines"], nil
-}

@@ -26,7 +26,7 @@ func BenchmarkDiffMethToSearch(b *testing.B) {
 	opts := &slog.HandlerOptions{}
 	handler := slog.NewJSONHandler(io.Discard, opts)
 	logger := slog.New(handler)
-	comicsFiller := xkcd.NewFiller(100, comics, myDB, downloader, *logger)
+	comicsFiller := xkcd.NewFiller(core.GoroutineNum, comics, myDB, downloader, *logger)
 	comics, _ = comicsFiller.FillMissedComics()
 
 	index := make(map[string][]int)
