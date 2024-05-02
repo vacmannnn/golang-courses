@@ -11,6 +11,8 @@ type goodComics struct {
 	NumOfKeywords int
 }
 
+// FindByIndex searches input string by its slice of keywords and returns slice of most suitable comics URLs. The more
+// comics suitable, the lower the index
 func (f *Finder) FindByIndex(input []string) []string {
 	wasFound := make(map[int]int)
 	for _, keywords := range input {
