@@ -1,6 +1,7 @@
 package find
 
 import (
+	"context"
 	"courses/internal/core"
 	"courses/internal/core/filler"
 	"courses/internal/core/xkcd"
@@ -28,7 +29,7 @@ func BenchmarkDiffMethToSearch(b *testing.B) {
 	handler := slog.NewJSONHandler(io.Discard, opts)
 	logger := slog.New(handler)
 	comicsFiller := filler.NewFiller(core.GoroutineNum, comics, myDB, downloader, *logger)
-	comics, _ = comicsFiller.FillMissedComics()
+	comics, _ = comicsFiller.FillMissedComics(context.Background())
 
 	index := make(map[string][]int)
 	var doc []string

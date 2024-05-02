@@ -1,15 +1,13 @@
 package filler
 
 import (
+	"context"
 	"courses/internal/core"
 	"courses/internal/core/xkcd"
 	"courses/internal/database"
 	"courses/pkg/words"
 	"log/slog"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 )
 
 type Filler struct {
@@ -36,14 +34,21 @@ func NewFiller(goroutineNum int, comics map[int]core.ComicsDescript, db database
 	}
 }
 
-func (f *Filler) FillMissedComics() (map[int]core.ComicsDescript, error) {
+func (f *Filler) FillMissedComics(ctx context.Context) (map[int]core.ComicsDescript, error) {
 	comicsIDChan := make(chan int, f.goroutineNum)
 	comicsChan := make(chan comicsDescriptWithID, f.goroutineNum)
 	wg := sync.WaitGroup{}
 	var mt sync.Mutex
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	done := ctx.Done()
+	closed := func() bool {
+		select {
+		case <-done:
+			return true
+		default:
+			return false
+		}
+	}
 
 	// launch worker pool
 	for range f.goroutineNum {
@@ -65,7 +70,7 @@ func (f *Filler) FillMissedComics() (map[int]core.ComicsDescript, error) {
 		}
 
 		curComics = <-comicsChan
-		if curComics.Url != "" && len(sigs) == 0 {
+		if curComics.Url != "" && !closed() {
 			if err := f.writeComicsWithID(curComics); err != nil {
 				return f.comics, err
 			}
