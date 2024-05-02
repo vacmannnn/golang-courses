@@ -32,11 +32,6 @@ func main() {
 		port = conf.Port
 	}
 
-	goroutineNum, err := getGoroutinesNum()
-	if err != nil {
-		logger.Error(err.Error())
-	}
-
 	// read existed DB to simplify downloading
 	myDB := database.NewDB(conf.DBFile)
 
@@ -50,7 +45,7 @@ func main() {
 	logger.Info("base opened", "comics in base", len(comics))
 	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 
-	filler := xkcd.NewFiller(goroutineNum, comics, myDB, downloader, *logger)
+	filler := xkcd.NewFiller(core.GoroutineNum, comics, myDB, downloader, *logger)
 	comics, err = filler.FillMissedComics()
 	if err != nil {
 		logger.Error(err.Error())
