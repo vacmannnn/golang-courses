@@ -2,6 +2,7 @@ package find
 
 import (
 	"courses/internal/core"
+	"courses/internal/core/filler"
 	"courses/internal/core/xkcd"
 	"courses/internal/database"
 	"io"
@@ -26,7 +27,7 @@ func BenchmarkDiffMethToSearch(b *testing.B) {
 	opts := &slog.HandlerOptions{}
 	handler := slog.NewJSONHandler(io.Discard, opts)
 	logger := slog.New(handler)
-	comicsFiller := xkcd.NewFiller(core.GoroutineNum, comics, myDB, downloader, *logger)
+	comicsFiller := filler.NewFiller(core.GoroutineNum, comics, myDB, downloader, *logger)
 	comics, _ = comicsFiller.FillMissedComics()
 
 	index := make(map[string][]int)

@@ -3,11 +3,13 @@ package main
 import (
 	"courses/internal/adapter/handler"
 	"courses/internal/core"
+	"courses/internal/core/filler"
 	"courses/internal/core/find"
 	"courses/internal/core/xkcd"
 	"courses/internal/database"
 	"encoding/json"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -43,16 +45,16 @@ func main() {
 		logger.Error(err.Error())
 	}
 	logger.Info("base opened", "comics in base", len(comics))
-	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 
-	filler := xkcd.NewFiller(core.GoroutineNum, comics, myDB, downloader, *logger)
-	comics, err = filler.FillMissedComics()
+	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
+	comicsFiller := filler.NewFiller(core.GoroutineNum, comics, myDB, downloader, *logger)
+	comics, err = comicsFiller.FillMissedComics()
 	if err != nil {
 		logger.Error(err.Error())
 	}
 
 	// build index
-	finder := find.NewFinder(comics, filler)
+	finder := find.NewFinder(comics, comicsFiller)
 	index := finder.GetIndex()
 
 	// write to index.json
@@ -66,7 +68,9 @@ func main() {
 		logger.Warn(err.Error())
 	}
 
-	mux := handler.CreateServeMux(finder)
+	mux := handler.CreateServeMux(finder, logger)
 	portStr := fmt.Sprintf(":%d", port)
-	http.ListenAndServe(portStr, mux)
+
+	// based on https://quii.gitbook.io/learn-go-with-tests/build-an-application/http-server
+	log.Fatal(http.ListenAndServe(portStr, mux))
 }
