@@ -10,11 +10,14 @@ import (
 	"courses/internal/database"
 	"encoding/json"
 	"fmt"
+	"github.com/robfig/cron/v3"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func main() {
@@ -83,6 +86,36 @@ func main() {
 			logger.Debug("server error", "err", err.Error())
 		}
 	}()
+	logger.Info("Server started")
+
+	c := cron.New()
+	c.AddFunc("@every 1m", func() {
+		logger.Info("Send update")
+		client := &http.Client{
+			Timeout: 30 * time.Second,
+		}
+
+		url := fmt.Sprintf("http://localhost:%d/update", port)
+		req, err := http.NewRequestWithContext(context.Background(),
+			http.MethodPost, url, nil)
+		if err != nil {
+			logger.Error(err.Error())
+		}
+
+		res, err := client.Do(req)
+		if err != nil {
+			logger.Error(err.Error())
+		}
+
+		defer func(Body io.ReadCloser) {
+			_ = Body.Close()
+		}(res.Body)
+		if res.StatusCode != http.StatusOK {
+			logger.Error(fmt.Sprintf("unexpected status: got %v", res.Status))
+		}
+	})
+	c.Start()
+
 	<-ctx.Done()
 
 	ctx, stop = context.WithTimeout(context.Background(), core.MaxWaitTime)
