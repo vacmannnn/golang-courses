@@ -11,6 +11,11 @@ type ComicsDownloader interface {
 	GetComicsFromID(int) (ComicsDescript, int, error)
 }
 
+type DataBase interface {
+	Write(map[int]ComicsDescript) error
+	Read() (map[int]ComicsDescript, error)
+}
+
 const MaxWaitTime = time.Second * 5
 
 const MaxComicsToShow = 10

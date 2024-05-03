@@ -3,7 +3,6 @@ package filler
 import (
 	"context"
 	"courses/internal/core"
-	"courses/internal/database"
 	"courses/pkg/words"
 	"log/slog"
 	"sync"
@@ -12,7 +11,7 @@ import (
 type Filler struct {
 	goroutineNum int
 	comics       map[int]core.ComicsDescript
-	db           database.DataBase
+	db           core.DataBase
 	downloader   core.ComicsDownloader
 	logger       slog.Logger
 }
@@ -22,7 +21,7 @@ type comicsDescriptWithID struct {
 	id int
 }
 
-func NewFiller(goroutineNum int, comics map[int]core.ComicsDescript, db database.DataBase,
+func NewFiller(goroutineNum int, comics map[int]core.ComicsDescript, db core.DataBase,
 	downloader core.ComicsDownloader, logger slog.Logger) Filler {
 	return Filler{
 		goroutineNum: goroutineNum,

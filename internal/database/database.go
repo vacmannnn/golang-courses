@@ -12,8 +12,8 @@ type DataBase struct {
 }
 
 // NewDB sets path to database
-func NewDB(path string) DataBase {
-	return DataBase{pathToDB: path}
+func NewDB(path string) *DataBase {
+	return &DataBase{pathToDB: path}
 }
 
 func (d *DataBase) Write(data map[int]core.ComicsDescript) error {
