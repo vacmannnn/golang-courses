@@ -9,8 +9,6 @@ import (
 	"sync"
 )
 
-// как-то грустно, что finder внутри себя хранит доступ к БД (filler)
-
 type ComicsCatalog struct {
 	comics map[int]core.ComicsDescript
 	index  map[string][]int
