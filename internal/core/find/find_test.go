@@ -1,4 +1,4 @@
-package find
+package catalog
 
 import (
 	"context"
@@ -46,16 +46,16 @@ func BenchmarkDiffMethToSearch(b *testing.B) {
 		"funny comics about math"}
 	for _, str := range testString {
 		comicsName := "findFindByIndex-" + strconv.Itoa(len(str))
-		finder := NewFinder(comics, comicsFiller)
+		catalog := NewCatalog(comics, comicsFiller)
 		b.Run(comicsName, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				finder.FindByIndex(strings.Split(str, " "))
+				catalog.FindByIndex(strings.Split(str, " "))
 			}
 		})
 		comicsName = "findByComics-" + strconv.Itoa(len(str))
 		b.Run(comicsName, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				finder.findByComics(strings.Split(str, " "))
+				catalog.findByComics(strings.Split(str, " "))
 			}
 		})
 	}

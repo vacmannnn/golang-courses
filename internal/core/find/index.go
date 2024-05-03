@@ -1,4 +1,4 @@
-package find
+package catalog
 
 import (
 	"context"
@@ -11,20 +11,20 @@ import (
 
 // как-то грустно, что finder внутри себя хранит доступ к БД (filler)
 
-type Finder struct {
+type ComicsCatalog struct {
 	comics map[int]core.ComicsDescript
 	index  map[string][]int
 	filler filler.Filler
 	mt     sync.Mutex
 }
 
-func NewFinder(comics map[int]core.ComicsDescript, filler filler.Filler) *Finder {
-	f := Finder{comics: comics, filler: filler}
+func NewCatalog(comics map[int]core.ComicsDescript, filler filler.Filler) *ComicsCatalog {
+	f := ComicsCatalog{comics: comics, filler: filler}
 	f.buildIndex()
 	return &f
 }
 
-func (f *Finder) buildIndex() {
+func (f *ComicsCatalog) buildIndex() {
 	index := make(map[string][]int)
 	for k, v := range f.comics {
 		for i, token := range v.Keywords {
@@ -36,11 +36,11 @@ func (f *Finder) buildIndex() {
 	f.index = index
 }
 
-func (f *Finder) GetIndex() map[string][]int {
+func (f *ComicsCatalog) GetIndex() map[string][]int {
 	return f.index
 }
 
-func (f *Finder) UpdateComics() (map[string]int, error) {
+func (f *ComicsCatalog) UpdateComics() (map[string]int, error) {
 	updatedComics, err := f.filler.FillMissedComics(context.Background())
 	if err != nil {
 		return nil, err

@@ -54,7 +54,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT)
 	defer stop()
 
-	var downloader core.ComicsDownloader = xkcd.NewComicsDownloader(conf.SourceUrl)
+	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
 	comicsFiller := filler.NewFiller(core.GoroutineNum, comics, myDB, downloader, *logger)
 	comics, err = comicsFiller.FillMissedComics(ctx)
 	if err != nil {
@@ -62,8 +62,8 @@ func main() {
 	}
 
 	// build index
-	finder := find.NewFinder(comics, comicsFiller)
-	index := finder.GetIndex()
+	ctlg := catalog.NewCatalog(comics, comicsFiller)
+	index := ctlg.GetIndex()
 
 	// write to index.json
 	file, err := json.MarshalIndent(index, "", " ")
@@ -76,7 +76,7 @@ func main() {
 		logger.Warn(err.Error())
 	}
 
-	mux := handler.CreateServeMux(finder, logger)
+	mux := handler.CreateServeMux(ctlg, logger)
 	portStr := fmt.Sprintf(":%d", port)
 
 	// based on https://stackoverflow.com/questions/39320025/how-to-stop-http-listenandserve

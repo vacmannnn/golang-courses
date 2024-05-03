@@ -1,4 +1,4 @@
-package find
+package catalog
 
 import (
 	"cmp"
@@ -13,7 +13,7 @@ type goodComics struct {
 
 // FindByIndex searches input string by its slice of keywords and returns slice of most suitable comics URLs. The more
 // comics suitable, the lower the index
-func (f *Finder) FindByIndex(input []string) []string {
+func (f *ComicsCatalog) FindByIndex(input []string) []string {
 	wasFound := make(map[int]int)
 	for _, keywords := range input {
 		for _, comicsID := range f.index[keywords] {
@@ -37,7 +37,7 @@ func (f *Finder) FindByIndex(input []string) []string {
 }
 
 // findByComics unused cause of inefficient speed compared to FindByIndex
-func (f *Finder) findByComics(input []string) []string {
+func (f *ComicsCatalog) findByComics(input []string) []string {
 	var res []goodComics
 	for id, v := range f.comics {
 		var numOfWords int

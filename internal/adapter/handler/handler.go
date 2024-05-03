@@ -10,13 +10,13 @@ import (
 	"strings"
 )
 
-func CreateServeMux(finder *find.Finder, logger *slog.Logger) *http.ServeMux {
+func CreateServeMux(ctlg *catalog.ComicsCatalog, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /pics", func(wr http.ResponseWriter, r *http.Request) {
 		comicsKeywords := r.URL.Query().Get("search")
 		clearedKeywords := words.StemStringWithClearing(strings.Split(comicsKeywords, " "))
-		res := finder.FindByIndex(clearedKeywords)
+		res := ctlg.FindByIndex(clearedKeywords)
 
 		if len(res) == 0 {
 			wr.WriteHeader(404)
@@ -40,7 +40,7 @@ func CreateServeMux(finder *find.Finder, logger *slog.Logger) *http.ServeMux {
 	})
 
 	mux.HandleFunc("POST /update", func(wr http.ResponseWriter, r *http.Request) {
-		diff, err := finder.UpdateComics()
+		diff, err := ctlg.UpdateComics()
 		if err != nil {
 			logger.Error("updating comics", "err", err)
 		}
