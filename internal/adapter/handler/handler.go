@@ -2,7 +2,7 @@ package handler
 
 import (
 	"courses/internal/core"
-	"courses/internal/core/find"
+	"courses/internal/core/catalog"
 	"courses/pkg/words"
 	"encoding/json"
 	"log/slog"
@@ -30,7 +30,7 @@ func CreateServeMux(ctlg *catalog.ComicsCatalog, logger *slog.Logger) *http.Serv
 		comicsToSend := min(len(res), core.MaxComicsToShow)
 		data, err := json.Marshal(res[:comicsToSend])
 		if err != nil {
-			logger.Error("marshalling res of find", "err", err)
+			logger.Error("marshalling res of catalog", "err", err)
 			data = []byte("")
 		}
 		_, err = wr.Write(data)
