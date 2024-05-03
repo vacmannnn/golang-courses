@@ -7,6 +7,10 @@ type ComicsDescript struct {
 	Keywords []string `json:"keywords"`
 }
 
+type ComicsDownloader interface {
+	GetComicsFromID(int) (ComicsDescript, int, error)
+}
+
 const MaxWaitTime = time.Second * 5
 
 const MaxComicsToShow = 10

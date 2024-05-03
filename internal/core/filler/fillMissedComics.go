@@ -3,7 +3,6 @@ package filler
 import (
 	"context"
 	"courses/internal/core"
-	"courses/internal/core/xkcd"
 	"courses/internal/database"
 	"courses/pkg/words"
 	"log/slog"
@@ -14,7 +13,7 @@ type Filler struct {
 	goroutineNum int
 	comics       map[int]core.ComicsDescript
 	db           database.DataBase
-	downloader   xkcd.ComicsDownloader
+	downloader   core.ComicsDownloader
 	logger       slog.Logger
 }
 
@@ -24,7 +23,7 @@ type comicsDescriptWithID struct {
 }
 
 func NewFiller(goroutineNum int, comics map[int]core.ComicsDescript, db database.DataBase,
-	downloader xkcd.ComicsDownloader, logger slog.Logger) Filler {
+	downloader core.ComicsDownloader, logger slog.Logger) Filler {
 	return Filler{
 		goroutineNum: goroutineNum,
 		comics:       comics,
