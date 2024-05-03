@@ -54,7 +54,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT)
 	defer stop()
 
-	downloader := xkcd.NewComicsDownloader(conf.SourceUrl)
+	var downloader core.ComicsDownloader = xkcd.NewComicsDownloader(conf.SourceUrl)
 	comicsFiller := filler.NewFiller(core.GoroutineNum, comics, myDB, downloader, *logger)
 	comics, err = comicsFiller.FillMissedComics(ctx)
 	if err != nil {
@@ -89,7 +89,7 @@ func main() {
 	logger.Info("Server started")
 
 	c := cron.New()
-	c.AddFunc("@every 1m", func() {
+	_, err = c.AddFunc("@every 1m", func() {
 		logger.Info("Send update")
 		client := &http.Client{
 			Timeout: 30 * time.Second,
@@ -114,6 +114,9 @@ func main() {
 			logger.Error(fmt.Sprintf("unexpected status: got %v", res.Status))
 		}
 	})
+	if err != nil {
+		logger.Error("Cron error", "err", err.Error())
+	}
 	c.Start()
 
 	<-ctx.Done()
