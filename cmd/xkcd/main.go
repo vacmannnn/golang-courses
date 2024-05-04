@@ -89,7 +89,7 @@ func main() {
 	logger.Info("Server started")
 
 	c := cron.New()
-	_, err = c.AddFunc("@every 1m", func() {
+	_, err = c.AddFunc("@every 24h", func() {
 		logger.Info("Send update")
 		client := &http.Client{
 			Timeout: 30 * time.Second,
