@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/robfig/cron/v3"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -40,7 +41,11 @@ func main() {
 	}
 
 	// read existed DB to simplify downloading
-	myDB := database.NewDB(conf.DBFile)
+	myDB, err := database.NewDB(conf.DBFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer myDB.Close()
 
 	comics, err := myDB.Read()
 	if comics == nil {

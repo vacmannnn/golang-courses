@@ -12,7 +12,7 @@ type ComicsDownloader interface {
 }
 
 type DataBase interface {
-	Write(map[int]ComicsDescript) error
+	Write(ComicsDescript, int) error
 	Read() (map[int]ComicsDescript, error)
 }
 
