@@ -2,52 +2,95 @@ package database
 
 import (
 	"courses/internal/core"
-	"encoding/json"
+	"database/sql"
+	"fmt"
+	_ "github.com/mattn/go-sqlite3"
 	"os"
+	"strings"
 )
 
+const create string = `
+CREATE TABLE IF NOT EXISTS comics (
+  id INTEGER NOT NULL PRIMARY KEY,
+  url TEXT,
+  keywords TEXT,
+  comicsid INTEGER
+  );`
+
 type DataBase struct {
-	pathToDB   string
-	readBefore bool
+	pathToDB string
+	db       *sql.DB
 }
 
 // NewDB sets path to database
-func NewDB(path string) *DataBase {
-	return &DataBase{pathToDB: path}
-}
-
-func (d *DataBase) Write(data map[int]core.ComicsDescript) error {
-	var err error
-	var w *os.File
-	if d.readBefore {
-		w, err = os.OpenFile(d.pathToDB, os.O_APPEND|os.O_WRONLY, 0644)
-	} else {
-		w, err = os.Create(d.pathToDB)
-		d.readBefore = true
-	}
-	if err != nil {
-		return err
-	}
-	encoder := json.NewEncoder(w)
-	return encoder.Encode(data)
-}
-
-func (d *DataBase) Read() (map[int]core.ComicsDescript, error) {
-	r, err := os.OpenFile(d.pathToDB, os.O_RDONLY, 0644)
+func NewDB(path string) (*DataBase, error) {
+	err := createFileIfNotExists(path)
 	if err != nil {
 		return nil, err
 	}
-	decoder := json.NewDecoder(r)
-	total := make(map[int]core.ComicsDescript)
-	for decoder.More() {
-		var person map[int]core.ComicsDescript
-		if err := decoder.Decode(&person); err != nil {
-			return total, err
-		}
-		for k, v := range person {
-			total[k] = v
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		return nil, err
+	}
+	_, err = db.Exec(create)
+	if err != nil {
+		return nil, err
+	}
+	return &DataBase{pathToDB: path, db: db}, nil
+}
+
+func createFileIfNotExists(path string) error {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// File does not exist, create it.
+			file, err := os.Create(path)
+			if err != nil {
+				return err
+			}
+			defer func(file *os.File) {
+				_ = file.Close()
+			}(file)
+		} else {
+			return err
 		}
 	}
+	return nil
+}
 
-	return total, nil
+func (d *DataBase) Write(descript core.ComicsDescript, comicsid int) error {
+	keywords := strings.Join(descript.Keywords, " ")
+	_, err := d.db.Exec("insert into comics (url, keywords, comicsid) values ($1, $2, $3)",
+		descript.Url, keywords, comicsid)
+
+	return err
+}
+
+func (d *DataBase) Read() (map[int]core.ComicsDescript, error) {
+	rows, err := d.db.Query("select * from comics")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+	comics := make(map[int]core.ComicsDescript)
+
+	for rows.Next() {
+		var abc, id int
+		var keywords string
+		descript := core.ComicsDescript{}
+		err = rows.Scan(&abc, &descript.Url, &keywords, &id)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		descript.Keywords = strings.Split(keywords, " ")
+
+		comics[id] = descript
+	}
+
+	return comics, err
+}
+
+func (d *DataBase) Close() {
+	_ = d.db.Close()
 }

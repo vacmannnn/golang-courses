@@ -18,7 +18,8 @@ type Filler struct {
 
 type comicsDescriptWithID struct {
 	core.ComicsDescript
-	id int
+	id           int
+	isDownloaded bool
 }
 
 func NewFiller(goroutineNum int, comics map[int]core.ComicsDescript, db core.DataBase,
@@ -69,8 +70,11 @@ func (f *Filler) FillMissedComics(ctx context.Context) (map[int]core.ComicsDescr
 
 		curComics = <-comicsChan
 		if curComics.Url != "" && !closed() {
-			if err := f.writeComicsWithID(curComics); err != nil {
-				return f.comics, err
+			if curComics.isDownloaded {
+				f.logger.Info("writing comics to DB", "id", curComics.id)
+				if err := f.writeComicsWithID(curComics); err != nil {
+					return f.comics, err
+				}
 			}
 		} else {
 			close(comicsIDChan)
@@ -79,9 +83,10 @@ func (f *Filler) FillMissedComics(ctx context.Context) (map[int]core.ComicsDescr
 
 			for range len(comicsChan) {
 				curComics = <-comicsChan
-				if curComics.Url == "" {
+				if curComics.Url == "" || !curComics.isDownloaded {
 					continue
 				}
+				f.logger.Info("writing comics to DB", "id", curComics.id)
 				if err := f.writeComicsWithID(curComics); err != nil {
 					return f.comics, err
 				}
@@ -94,6 +99,7 @@ func (f *Filler) FillMissedComics(ctx context.Context) (map[int]core.ComicsDescr
 
 func (f *Filler) worker(comicsIDChan <-chan int, results chan<- comicsDescriptWithID, mt *sync.Mutex) {
 	for comID := range comicsIDChan {
+		f.logger.Info("working on comics", "id", comID)
 		if f.comics[comID].Keywords == nil {
 			descript, id, err := f.downloader.GetComicsFromID(comID)
 			if err != nil {
@@ -101,21 +107,17 @@ func (f *Filler) worker(comicsIDChan <-chan int, results chan<- comicsDescriptWi
 				results <- comicsDescriptWithID{id: id}
 				continue
 			}
-			f.logger.Info("writing comics", "id", id)
 			descript.Keywords = words.StemStringWithClearing(descript.Keywords)
-			results <- comicsDescriptWithID{id: id, ComicsDescript: descript}
+			results <- comicsDescriptWithID{id: id, ComicsDescript: descript, isDownloaded: true}
 			mt.Lock()
 			f.comics[id] = descript
 			mt.Unlock()
 			continue
 		}
-		f.logger.Info("writing comics", "id", comID)
 		results <- comicsDescriptWithID{id: comID, ComicsDescript: f.comics[comID]}
 	}
 }
 
 func (f *Filler) writeComicsWithID(comicsWID comicsDescriptWithID) error {
-	var comics = make(map[int]core.ComicsDescript)
-	comics[comicsWID.id] = comicsWID.ComicsDescript
-	return f.db.Write(comics)
+	return f.db.Write(comicsWID.ComicsDescript, comicsWID.id)
 }
