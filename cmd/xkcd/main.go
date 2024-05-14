@@ -8,7 +8,6 @@ import (
 	"courses/internal/core/filler"
 	"courses/internal/core/xkcd"
 	"courses/internal/database"
-	"encoding/json"
 	"fmt"
 	"github.com/robfig/cron/v3"
 	"io"
@@ -68,18 +67,6 @@ func main() {
 
 	// build index
 	ctlg := catalog.NewCatalog(comics, comicsFiller)
-	index := ctlg.GetIndex()
-
-	// write to index.json
-	file, err := json.MarshalIndent(index, "", " ")
-	if err != nil {
-		logger.Warn(err.Error())
-	}
-
-	err = os.WriteFile("index.json", file, 0644)
-	if err != nil {
-		logger.Warn(err.Error())
-	}
 
 	mux := handler.CreateServeMux(ctlg, logger)
 	portStr := fmt.Sprintf(":%d", port)
