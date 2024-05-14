@@ -95,10 +95,10 @@ func (d *DataBase) Read() (map[int]core.ComicsDescript, error) {
 	comics := make(map[int]core.ComicsDescript)
 
 	for rows.Next() {
-		var abc, id int
+		var id int
 		var keywords string
 		descript := core.ComicsDescript{}
-		err = rows.Scan(&abc, &descript.Url, &keywords, &id)
+		err = rows.Scan(&descript.Url, &keywords, &id)
 		if err != nil {
 			fmt.Println(err)
 			continue
