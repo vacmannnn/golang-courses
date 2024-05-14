@@ -3,19 +3,15 @@ package database
 import (
 	"courses/internal/core"
 	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/database/sqlite3"
+	"github.com/golang-migrate/migrate/source/file"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"strings"
 )
-
-const create string = `
-CREATE TABLE IF NOT EXISTS comics (
-  id INTEGER NOT NULL PRIMARY KEY,
-  url TEXT,
-  keywords TEXT,
-  comicsid INTEGER
-  );`
 
 type DataBase struct {
 	pathToDB string
@@ -32,11 +28,35 @@ func NewDB(path string) (*DataBase, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = db.Exec(create)
+	err = runMigrate(db)
 	if err != nil {
 		return nil, err
 	}
 	return &DataBase{pathToDB: path, db: db}, nil
+}
+
+func runMigrate(db *sql.DB) error {
+	driver, err := sqlite3.WithInstance(db, &sqlite3.Config{})
+	if err != nil {
+		return fmt.Errorf("creating sqlite3 db driver failed %s", err)
+	}
+
+	fileSource, err := (&file.File{}).Open("file://internal/database/migration")
+	if err != nil {
+		return fmt.Errorf("opening migration file failed %s", err)
+	}
+
+	m, err := migrate.NewWithInstance("file", fileSource, "sqlite3", driver)
+	if err != nil {
+		return fmt.Errorf("initializing db migration failed %s", err)
+	}
+
+	err = m.Up()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("migrating database failed %s", err)
+	}
+
+	return nil
 }
 
 func createFileIfNotExists(path string) error {
@@ -58,10 +78,10 @@ func createFileIfNotExists(path string) error {
 	return nil
 }
 
-func (d *DataBase) Write(descript core.ComicsDescript, comicsid int) error {
+func (d *DataBase) Write(descript core.ComicsDescript, comicsID int) error {
 	keywords := strings.Join(descript.Keywords, " ")
-	_, err := d.db.Exec("insert into comics (url, keywords, comicsid) values ($1, $2, $3)",
-		descript.Url, keywords, comicsid)
+	_, err := d.db.Exec("insert into comics (url, keywords, comicsID) values ($1, $2, $3)",
+		descript.Url, keywords, comicsID)
 
 	return err
 }
