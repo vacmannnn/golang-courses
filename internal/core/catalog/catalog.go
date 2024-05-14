@@ -4,7 +4,6 @@ import (
 	"context"
 	"courses/internal/core"
 	"courses/internal/core/filler"
-	"fmt"
 	"maps"
 	"reflect"
 	"slices"
@@ -51,7 +50,6 @@ func (c *ComicsCatalog) UpdateComics() (map[string]int, error) {
 
 	eq := reflect.DeepEqual(updatedComics, oldComics)
 	var n int
-	fmt.Println(eq, len(updatedComics), len(oldComics))
 	if !eq {
 		for k, v := range updatedComics {
 			if !slices.Equal(oldComics[k].Keywords, v.Keywords) {
