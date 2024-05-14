@@ -4,6 +4,8 @@ import (
 	"context"
 	"courses/internal/core"
 	"courses/internal/core/filler"
+	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"sync"
@@ -22,42 +24,46 @@ func NewCatalog(comics map[int]core.ComicsDescript, filler filler.Filler) *Comic
 	return &f
 }
 
-func (f *ComicsCatalog) buildIndex() {
+func (c *ComicsCatalog) buildIndex() {
 	index := make(map[string][]int)
-	for k, v := range f.comics {
+	for k, v := range c.comics {
 		for i, token := range v.Keywords {
 			if !slices.Contains(v.Keywords[:i], token) {
 				index[token] = append(index[token], k)
 			}
 		}
 	}
-	f.index = index
+	c.index = index
 }
 
-func (f *ComicsCatalog) GetIndex() map[string][]int {
-	return f.index
+func (c *ComicsCatalog) GetIndex() map[string][]int {
+	return c.index
 }
 
-func (f *ComicsCatalog) UpdateComics() (map[string]int, error) {
-	updatedComics, err := f.filler.FillMissedComics(context.Background())
+func (c *ComicsCatalog) UpdateComics() (map[string]int, error) {
+	oldComics := make(map[int]core.ComicsDescript)
+	maps.Copy(oldComics, (*c).comics)
+
+	updatedComics, err := c.filler.FillMissedComics(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	eq := reflect.DeepEqual(updatedComics, f.comics)
+	eq := reflect.DeepEqual(updatedComics, oldComics)
 	var n int
+	fmt.Println(eq, len(updatedComics), len(oldComics))
 	if !eq {
 		for k, v := range updatedComics {
-			if slices.Equal(f.comics[k].Keywords, v.Keywords) {
+			if !slices.Equal(oldComics[k].Keywords, v.Keywords) {
 				n++
 			}
 		}
 
 		// need to update current comics set with corresponding index
-		f.mt.Lock()
-		f.comics = updatedComics
-		f.buildIndex()
-		f.mt.Unlock()
+		c.mt.Lock()
+		c.comics = updatedComics
+		c.buildIndex()
+		c.mt.Unlock()
 	}
 
 	diff := map[string]int{

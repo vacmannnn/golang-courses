@@ -13,10 +13,10 @@ type goodComics struct {
 
 // FindByIndex searches input string by its slice of keywords and returns slice of most suitable comics URLs. The more
 // comics suitable, the lower the index
-func (f *ComicsCatalog) FindByIndex(input []string) []string {
+func (c *ComicsCatalog) FindByIndex(input []string) []string {
 	wasFound := make(map[int]int)
 	for _, keywords := range input {
-		for _, comicsID := range f.index[keywords] {
+		for _, comicsID := range c.index[keywords] {
 			wasFound[comicsID]++
 		}
 	}
@@ -31,15 +31,15 @@ func (f *ComicsCatalog) FindByIndex(input []string) []string {
 	})
 	var urls []string
 	for i := 0; i < min(core.MaxComicsToShow, len(res)); i++ {
-		urls = append(urls, f.comics[res[i].Id].Url)
+		urls = append(urls, c.comics[res[i].Id].Url)
 	}
 	return urls
 }
 
 // findByComics unused cause of inefficient speed compared to FindByIndex
-func (f *ComicsCatalog) findByComics(input []string) []string {
+func (c *ComicsCatalog) findByComics(input []string) []string {
 	var res []goodComics
-	for id, v := range f.comics {
+	for id, v := range c.comics {
 		var numOfWords int
 		for _, word := range input {
 			if slices.Contains(v.Keywords, word) {
@@ -55,7 +55,7 @@ func (f *ComicsCatalog) findByComics(input []string) []string {
 	})
 	var urls []string
 	for i := 0; i < min(core.MaxComicsToShow, len(res)); i++ {
-		urls = append(urls, f.comics[res[i].Id].Url)
+		urls = append(urls, c.comics[res[i].Id].Url)
 	}
 	return urls
 }
