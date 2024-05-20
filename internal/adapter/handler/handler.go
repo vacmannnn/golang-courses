@@ -1,18 +1,18 @@
 package handler
 
 import (
-	"courses/internal/core/catalog"
+	"courses/internal/core"
 	"log/slog"
 	"net/http"
 )
 
 type Server struct {
-	ctlg   *catalog.ComicsCatalog // interface
-	logger *slog.Logger
+	ctlg   core.Catalog
+	logger slog.Logger
 	mux    *http.ServeMux
 }
 
-func NewMux(ctlg *catalog.ComicsCatalog, logger *slog.Logger) http.Handler {
+func NewMux(ctlg core.Catalog, logger slog.Logger) http.Handler {
 	myServ := Server{ctlg: ctlg, logger: logger, mux: http.NewServeMux()}
 
 	myServ.mux.HandleFunc("GET /pics", myServ.protectedSearch())

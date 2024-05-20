@@ -99,15 +99,18 @@ func (s *Server) protectedSearch() func(http.ResponseWriter, *http.Request) {
 }
 
 func (s *Server) updateRequest(wr http.ResponseWriter, _ *http.Request) {
-	diff, err := s.ctlg.UpdateComics()
+	numOfNewComics, total, err := s.ctlg.UpdateComics()
 	if err != nil {
 		s.logger.Error("updating comics", "err", err)
 	}
+
+	diff := map[string]int{"new": numOfNewComics, "total": total}
 	data, err := json.Marshal(diff)
 	if err != nil {
 		s.logger.Error("marshalling diff of comics update", "err", err)
 		data = []byte("")
 	}
+
 	_, err = wr.Write(data)
 	if err != nil {
 		s.logger.Error("writing response for POST /update", "err", err)

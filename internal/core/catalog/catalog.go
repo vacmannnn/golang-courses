@@ -39,13 +39,13 @@ func (c *ComicsCatalog) GetIndex() map[string][]int {
 	return c.index
 }
 
-func (c *ComicsCatalog) UpdateComics() (map[string]int, error) {
+func (c *ComicsCatalog) UpdateComics() (int, int, error) {
 	oldComics := make(map[int]core.ComicsDescript)
 	maps.Copy(oldComics, (*c).comics)
 
 	updatedComics, err := c.filler.FillMissedComics(context.Background())
 	if err != nil {
-		return nil, err
+		return 0, 0, err
 	}
 
 	eq := reflect.DeepEqual(updatedComics, oldComics)
@@ -64,8 +64,5 @@ func (c *ComicsCatalog) UpdateComics() (map[string]int, error) {
 		c.mt.Unlock()
 	}
 
-	diff := map[string]int{
-		"new": n, "total": len(updatedComics),
-	}
-	return diff, nil
+	return n, len(updatedComics), nil
 }
