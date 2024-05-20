@@ -13,6 +13,10 @@ import (
 // TODO: handle errors on fprint
 
 func (s *server) login(w http.ResponseWriter, r *http.Request) {
+	// concurrency limiter
+	s.requests <- struct{}{}
+	defer func() { <-s.requests }()
+
 	w.Header().Set("Content-Type", "application/json")
 
 	var u userInfo
@@ -52,6 +56,10 @@ func (s *server) auth(user userInfo) (int, error) {
 
 func (s *server) protectHandler(next func(http.ResponseWriter, *http.Request), checkForAdmin bool,
 	w http.ResponseWriter, r *http.Request) {
+	// concurrency limiter
+	s.requests <- struct{}{}
+	defer func() { <-s.requests }()
+
 	w.Header().Set("Content-Type", "application/json")
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {

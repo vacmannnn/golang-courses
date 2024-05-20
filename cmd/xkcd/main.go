@@ -66,7 +66,7 @@ func main() {
 	}
 
 	var ctlg core.Catalog = catalog.NewCatalog(comics, comicsFiller)
-	mux := handler.NewMux(ctlg, *logger, conf.RateLimit, conf.TokenMaxTime)
+	mux := handler.NewMux(ctlg, *logger, conf.RateLimit, conf.TokenMaxTime, conf.ConcurrencyLimit)
 	portStr := fmt.Sprintf(":%d", port)
 
 	// based on https://stackoverflow.com/questions/39320025/how-to-stop-http-listenandserve
