@@ -65,10 +65,8 @@ func main() {
 		logger.Error(err.Error())
 	}
 
-	// build index
-	ctlg := catalog.NewCatalog(comics, comicsFiller)
-
-	mux := handler.NewMux(ctlg, logger)
+	var ctlg core.Catalog = catalog.NewCatalog(comics, comicsFiller)
+	mux := handler.NewMux(ctlg, *logger)
 	portStr := fmt.Sprintf(":%d", port)
 
 	// based on https://stackoverflow.com/questions/39320025/how-to-stop-http-listenandserve
@@ -80,8 +78,24 @@ func main() {
 	}()
 	logger.Info("Server started")
 
+	c, err := setCron(port, *logger)
+	if err != nil {
+		logger.Error("Cron error", "err", err.Error())
+	}
+	c.Start()
+
+	<-ctx.Done()
+
+	ctx, stop = context.WithTimeout(context.Background(), core.MaxWaitTime)
+	defer stop()
+	if err = server.Shutdown(ctx); err != nil {
+		logger.Debug("server shutdown error", "err", err.Error())
+	}
+}
+
+func setCron(port int, logger slog.Logger) (*cron.Cron, error) {
 	c := cron.New()
-	_, err = c.AddFunc("0 13 * * *", func() {
+	_, err := c.AddFunc("0 13 * * *", func() {
 		logger.Info("Send update")
 		client := &http.Client{
 			Timeout: 30 * time.Second,
@@ -106,16 +120,5 @@ func main() {
 			logger.Error(fmt.Sprintf("unexpected status: got %v", res.Status))
 		}
 	})
-	if err != nil {
-		logger.Error("Cron error", "err", err.Error())
-	}
-	c.Start()
-
-	<-ctx.Done()
-
-	ctx, stop = context.WithTimeout(context.Background(), core.MaxWaitTime)
-	defer stop()
-	if err = server.Shutdown(ctx); err != nil {
-		logger.Debug("server shutdown error", "err", err.Error())
-	}
+	return c, err
 }

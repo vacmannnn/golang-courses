@@ -16,6 +16,12 @@ type DataBase interface {
 	Read() (map[int]ComicsDescript, error)
 }
 
+type Catalog interface {
+	FindByIndex([]string) []string
+	GetIndex() map[string][]int
+	UpdateComics() (int, int, error)
+}
+
 const MaxWaitTime = time.Second * 5
 
 const MaxComicsToShow = 10
