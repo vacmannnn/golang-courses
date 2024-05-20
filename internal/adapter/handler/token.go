@@ -8,12 +8,12 @@ import (
 
 var secretKey = []byte("bananchiki") // TODO: config.yaml
 
-func createToken(user userInfo) (string, error) {
+func createToken(user userInfo, expTime int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"Username": user.Username,
 			"role":     user.role,
-			"exp":      time.Now().Add(time.Hour * 24).Unix(),
+			"exp":      time.Now().Add(time.Minute * time.Duration(expTime)).Unix(),
 		})
 
 	tokenString, err := token.SignedString(secretKey)

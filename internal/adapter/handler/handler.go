@@ -9,18 +9,19 @@ import (
 )
 
 type server struct {
-	ctlg   core.Catalog
-	logger slog.Logger
-	mux    *http.ServeMux
-	users  []userInfo
+	ctlg         core.Catalog
+	logger       slog.Logger
+	mux          *http.ServeMux
+	users        []userInfo
+	expTokenTime int
 }
 
-func NewMux(ctlg core.Catalog, logger slog.Logger, rateLimit int) http.Handler {
+func NewMux(ctlg core.Catalog, logger slog.Logger, rateLimit int, expTime int) http.Handler {
 	users, err := getUsers("users.json")
 	if err != nil {
 		logger.Error("Failed to load users", "error", err.Error())
 	}
-	myServ := server{ctlg: ctlg, logger: logger, mux: http.NewServeMux(), users: users}
+	myServ := server{ctlg: ctlg, logger: logger, mux: http.NewServeMux(), users: users, expTokenTime: expTime}
 
 	myServ.mux.HandleFunc("GET /pics", myServ.protectedSearch())
 	myServ.mux.HandleFunc("POST /update", myServ.protectedUpdate())
