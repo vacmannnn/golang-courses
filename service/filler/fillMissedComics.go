@@ -2,7 +2,7 @@ package filler
 
 import (
 	"context"
-	"courses/internal/core"
+	"courses/core"
 	"courses/pkg/words"
 	"log/slog"
 	"sync"

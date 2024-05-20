@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"courses/internal/adapter/handler"
-	"courses/internal/core"
-	"courses/internal/core/catalog"
-	"courses/internal/core/filler"
-	"courses/internal/core/xkcd"
-	"courses/internal/database"
+	"courses/core"
+	"courses/server/handler"
+	"courses/service/catalog"
+	"courses/service/filler"
+	"courses/service/xkcd"
+	"courses/storage"
 	"fmt"
 	"github.com/robfig/cron/v3"
 	"io"

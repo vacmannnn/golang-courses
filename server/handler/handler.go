@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"courses/internal/core"
+	"courses/core"
 	"encoding/json"
 	"log/slog"
 	"net/http"

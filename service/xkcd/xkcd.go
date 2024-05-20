@@ -1,7 +1,7 @@
 package xkcd
 
 import (
-	"courses/internal/core"
+	"courses/core"
 	"encoding/json"
 	"fmt"
 	"io"

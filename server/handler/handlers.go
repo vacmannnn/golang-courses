@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"courses/internal/core"
+	"courses/core"
 	"courses/pkg/words"
 	"encoding/json"
 	"fmt"

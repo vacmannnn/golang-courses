@@ -1,7 +1,7 @@
 package database
 
 import (
-	"courses/internal/core"
+	"courses/core"
 	"database/sql"
 	"errors"
 	"fmt"
