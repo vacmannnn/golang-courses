@@ -51,14 +51,12 @@ func verifyToken(tokenString string) (bool, error) {
 		return false, fmt.Errorf("invalid token")
 	}
 
-	fmt.Println(token.Claims)
-
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return false, fmt.Errorf("unable to extract claims")
 	}
 
-	return claims["role"] == admin, nil
+	return claims["role"] == float64(admin), nil
 }
 
 func auth(user User) (int, error) {

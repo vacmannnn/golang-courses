@@ -5,17 +5,21 @@ import (
 	"courses/pkg/words"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 )
 
-func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
+// TODO: handle errors on fprint
+
+func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var u User
-	json.NewDecoder(r.Body).Decode(&u)
-	fmt.Printf("The user request value %v", u)
+	err := json.NewDecoder(r.Body).Decode(&u)
+	if err != nil {
+		// TODO
+		return
+	}
 
 	role, err := auth(u)
 	if err == nil {
@@ -27,7 +31,6 @@ func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, tokenString)
-		log.Println(tokenString)
 		return
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -35,7 +38,8 @@ func (s *Server) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) ProtectedHandler(next func(http.ResponseWriter, *http.Request), checkForAdmin bool, w http.ResponseWriter, r *http.Request) {
+func (s *Server) protectHandler(next func(http.ResponseWriter, *http.Request), checkForAdmin bool,
+	w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {
@@ -57,13 +61,12 @@ func (s *Server) ProtectedHandler(next func(http.ResponseWriter, *http.Request),
 		return
 	}
 
-	fmt.Fprint(w, "Welcome to the the protected area")
 	next(w, r)
 }
 
-func (s *Server) GetRequestHandler(wr http.ResponseWriter, r *http.Request) {
+func (s *Server) searchRequest(wr http.ResponseWriter, r *http.Request) {
 	comicsKeywords := r.URL.Query().Get("search")
-	//validate?
+	// TODO: validate
 	clearedKeywords := words.StemStringWithClearing(strings.Split(comicsKeywords, " "))
 	res := s.ctlg.FindByIndex(clearedKeywords)
 
@@ -89,13 +92,13 @@ func (s *Server) GetRequestHandler(wr http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) protectedGet() func(http.ResponseWriter, *http.Request) {
+func (s *Server) protectedSearch() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.ProtectedHandler(s.GetRequestHandler, false, w, r)
+		s.protectHandler(s.searchRequest, false, w, r)
 	}
 }
 
-func (s *Server) UpdateRequestHandler(wr http.ResponseWriter, _ *http.Request) {
+func (s *Server) updateRequest(wr http.ResponseWriter, _ *http.Request) {
 	diff, err := s.ctlg.UpdateComics()
 	if err != nil {
 		s.logger.Error("updating comics", "err", err)
@@ -113,6 +116,6 @@ func (s *Server) UpdateRequestHandler(wr http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) protectedUpdate() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.ProtectedHandler(s.UpdateRequestHandler, true, w, r)
+		s.protectHandler(s.updateRequest, true, w, r)
 	}
 }
