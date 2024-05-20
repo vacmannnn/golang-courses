@@ -1,0 +1,11 @@
+concurrency_limit:
+  5
+
+rate_limit:
+  5
+
+token_max_time: # in minutes
+  60
+
+secret_key: # currently unused
+  "bananchiki"
