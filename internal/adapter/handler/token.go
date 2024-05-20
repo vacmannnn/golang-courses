@@ -8,24 +8,10 @@ import (
 
 var secretKey = []byte("bananchiki") // TODO: config.yaml
 
-var testUsers = []User{{role: admin, Username: "admin", Password: "admin"},
-	{role: user, Username: "user", Password: "user"}} // TODO: config.yaml
-
-const (
-	admin = iota
-	user
-)
-
-type User struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	role     int
-}
-
-func createToken(user User) (string, error) {
+func createToken(user userInfo) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"username": user.Username,
+			"Username": user.Username,
 			"role":     user.role,
 			"exp":      time.Now().Add(time.Hour * 24).Unix(),
 		})
@@ -57,13 +43,4 @@ func verifyToken(tokenString string) (bool, error) {
 	}
 
 	return claims["role"] == float64(admin), nil
-}
-
-func auth(user User) (int, error) {
-	for _, u := range testUsers {
-		if u.Username == user.Username && u.Password == user.Password {
-			return u.role, nil
-		}
-	}
-	return -1, fmt.Errorf("invalid user")
 }
