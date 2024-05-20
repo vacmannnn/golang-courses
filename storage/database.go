@@ -41,7 +41,7 @@ func runMigrate(db *sql.DB) error {
 		return fmt.Errorf("creating sqlite3 db driver failed %s", err)
 	}
 
-	fileSource, err := (&file.File{}).Open("file://internal/database/migration")
+	fileSource, err := (&file.File{}).Open("file://storage/migration")
 	if err != nil {
 		return fmt.Errorf("opening migration file failed %s", err)
 	}
