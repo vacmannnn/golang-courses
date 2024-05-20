@@ -2,6 +2,18 @@ package core
 
 import "time"
 
+type Config struct {
+	SourceUrl string `yaml:"source_url"`
+	DBFile    string `yaml:"db_file"`
+	Port      int    `yaml:"port"`
+}
+
+type ServerConfig struct {
+	ConcurrencyLimit int `yaml:"concurrency_limit"`
+	RateLimit        int `yaml:"rate_limit"`
+	TokenMaxTime     int `yaml:"token_max_time"`
+}
+
 type ComicsDescript struct {
 	Url      string   `json:"url"`
 	Keywords []string `json:"keywords"`

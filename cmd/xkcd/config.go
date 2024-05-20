@@ -1,35 +1,38 @@
 package main
 
 import (
+	"courses/core"
 	"flag"
 	yaml "gopkg.in/yaml.v3"
 	"log/slog"
 	"os"
 )
 
-type Config struct {
-	SourceUrl        string `yaml:"source_url"`
-	DBFile           string `yaml:"db_file"`
-	Port             int    `yaml:"port"`
-	RateLimit        int    `yaml:"rate_limit"`
-	TokenMaxTime     int    `yaml:"token_max_time"`
-	ConcurrencyLimit int    `yaml:"concurrency_limit"`
+func getConfig(configPath string) (core.Config, error) {
+	config := core.Config{}
+
+	file, err := os.ReadFile(configPath)
+	if err != nil {
+		return config, err
+	}
+
+	if err = yaml.Unmarshal(file, &config); err != nil {
+		return core.Config{}, err
+	}
+
+	return config, nil
 }
 
-func getConfig(configPath string) (Config, error) {
-	config := Config{}
+func getServerConfig(configPath string) (core.ServerConfig, error) {
+	config := core.ServerConfig{}
 
-	file, err := os.Open(configPath)
+	file, err := os.ReadFile(configPath)
 	if err != nil {
-		return Config{}, err
+		return config, err
 	}
-	defer func(file *os.File) {
-		_ = file.Close()
-	}(file)
 
-	d := yaml.NewDecoder(file)
-	if err = d.Decode(&config); err != nil {
-		return Config{}, err
+	if err = yaml.Unmarshal(file, &config); err != nil {
+		return core.ServerConfig{}, err
 	}
 
 	return config, nil
