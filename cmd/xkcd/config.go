@@ -11,6 +11,7 @@ type Config struct {
 	SourceUrl string `yaml:"source_url"`
 	DBFile    string `yaml:"db_file"`
 	Port      int    `yaml:"port"`
+	RateLimit int    `yaml:"rate_limit"`
 }
 
 func getConfig(configPath string) (*Config, error) {

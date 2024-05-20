@@ -6,3 +6,6 @@ db_file:
 
 port:
   8080
+
+rate_limit:
+  5
