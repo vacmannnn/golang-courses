@@ -2,7 +2,7 @@ package catalog
 
 import (
 	"cmp"
-	"courses/internal/core"
+	"courses/core"
 	"slices"
 )
 

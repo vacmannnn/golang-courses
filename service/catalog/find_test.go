@@ -2,10 +2,10 @@ package catalog
 
 import (
 	"context"
-	"courses/internal/core"
-	"courses/internal/core/filler"
-	"courses/internal/core/xkcd"
-	"courses/internal/database"
+	"courses/core"
+	"courses/service/filler"
+	"courses/service/xkcd"
+	"courses/storage"
 	"io"
 	"log/slog"
 	"slices"

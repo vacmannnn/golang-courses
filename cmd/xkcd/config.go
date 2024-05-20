@@ -16,12 +16,12 @@ type Config struct {
 	ConcurrencyLimit int    `yaml:"concurrency_limit"`
 }
 
-func getConfig(configPath string) (*Config, error) {
-	config := &Config{}
+func getConfig(configPath string) (Config, error) {
+	config := Config{}
 
 	file, err := os.Open(configPath)
 	if err != nil {
-		return nil, err
+		return Config{}, err
 	}
 	defer func(file *os.File) {
 		_ = file.Close()
@@ -29,7 +29,7 @@ func getConfig(configPath string) (*Config, error) {
 
 	d := yaml.NewDecoder(file)
 	if err = d.Decode(&config); err != nil {
-		return nil, err
+		return Config{}, err
 	}
 
 	return config, nil

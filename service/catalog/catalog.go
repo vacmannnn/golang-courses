@@ -2,8 +2,8 @@ package catalog
 
 import (
 	"context"
-	"courses/internal/core"
-	"courses/internal/core/filler"
+	"courses/core"
+	"courses/service/filler"
 	"maps"
 	"reflect"
 	"slices"
