@@ -11,23 +11,24 @@ import (
 
 // TODO: handle errors on fprint
 
-func (s *Server) login(w http.ResponseWriter, r *http.Request) {
+func (s *server) login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	var u User
+	var u userInfo
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
 		// TODO
 		return
 	}
 
-	role, err := auth(u)
+	role, err := s.auth(u)
+
 	if err == nil {
 		u.role = role
 		tokenString, err := createToken(u)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			s.logger.Error("No username found")
+			s.logger.Error("No Username found")
 		}
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, tokenString)
@@ -38,7 +39,16 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) protectHandler(next func(http.ResponseWriter, *http.Request), checkForAdmin bool,
+func (s *server) auth(user userInfo) (int, error) {
+	for _, u := range s.users {
+		if u.Username == user.Username && u.Password == user.Password {
+			return u.role, nil
+		}
+	}
+	return -1, fmt.Errorf("invalid user")
+}
+
+func (s *server) protectHandler(next func(http.ResponseWriter, *http.Request), checkForAdmin bool,
 	w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	tokenString := r.Header.Get("Authorization")
@@ -64,7 +74,7 @@ func (s *Server) protectHandler(next func(http.ResponseWriter, *http.Request), c
 	next(w, r)
 }
 
-func (s *Server) searchRequest(wr http.ResponseWriter, r *http.Request) {
+func (s *server) searchRequest(wr http.ResponseWriter, r *http.Request) {
 	comicsKeywords := r.URL.Query().Get("search")
 	// TODO: validate
 	clearedKeywords := words.StemStringWithClearing(strings.Split(comicsKeywords, " "))
@@ -92,13 +102,13 @@ func (s *Server) searchRequest(wr http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) protectedSearch() func(http.ResponseWriter, *http.Request) {
+func (s *server) protectedSearch() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s.protectHandler(s.searchRequest, false, w, r)
 	}
 }
 
-func (s *Server) updateRequest(wr http.ResponseWriter, _ *http.Request) {
+func (s *server) updateRequest(wr http.ResponseWriter, _ *http.Request) {
 	numOfNewComics, total, err := s.ctlg.UpdateComics()
 	if err != nil {
 		s.logger.Error("updating comics", "err", err)
@@ -117,7 +127,7 @@ func (s *Server) updateRequest(wr http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (s *Server) protectedUpdate() func(http.ResponseWriter, *http.Request) {
+func (s *server) protectedUpdate() func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s.protectHandler(s.updateRequest, true, w, r)
 	}
