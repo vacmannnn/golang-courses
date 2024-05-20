@@ -5,6 +5,7 @@ import (
 	"courses/pkg/words"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
 )
@@ -41,7 +42,8 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) auth(user userInfo) (int, error) {
 	for _, u := range s.users {
-		if u.Username == user.Username && u.Password == user.Password {
+		if u.Username == user.Username &&
+			bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(user.Password)) == nil {
 			return u.role, nil
 		}
 	}

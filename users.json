@@ -1,12 +1,12 @@
 [
   {
     "username": "admin",
-    "password": "admin",
+    "password": "$2a$10$xP24Efyv0qyZj8IwA8Ux0uT31WdRe51l5QbdN0Yx9lYp1LjZdcova",
     "role": "admin"
   },
   {
     "username": "user",
-    "password": "user",
+    "password": "$2a$10$w6/HvzjDEJa7vgmEGWtXCuz9YkUkcyLMHN547wRhNyUTR0zPIILmK",
     "role": "user"
   }
 ] 
