@@ -9,7 +9,7 @@ var limiter = rate.NewLimiter(1, 3)
 
 func limit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if limiter.Allow() == false {
+		if !limiter.Allow() {
 			http.Error(w, http.StatusText(429), http.StatusTooManyRequests)
 			return
 		}

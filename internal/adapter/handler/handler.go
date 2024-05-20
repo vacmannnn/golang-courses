@@ -13,11 +13,11 @@ type Server struct {
 }
 
 func NewMux(ctlg *catalog.ComicsCatalog, logger *slog.Logger) http.Handler {
-	myMux := Server{ctlg: ctlg, logger: logger, mux: http.NewServeMux()}
+	myServ := Server{ctlg: ctlg, logger: logger, mux: http.NewServeMux()}
 
-	myMux.mux.HandleFunc("GET /pics", myMux.protectedGet())
-	myMux.mux.HandleFunc("POST /update", myMux.protectedUpdate())
-	myMux.mux.HandleFunc("GET /login", myMux.LoginHandler)
+	myServ.mux.HandleFunc("GET /pics", myServ.protectedSearch())
+	myServ.mux.HandleFunc("POST /update", myServ.protectedUpdate())
+	myServ.mux.HandleFunc("POST /login", myServ.login)
 
-	return limit(myMux.mux)
+	return limit(myServ.mux)
 }
