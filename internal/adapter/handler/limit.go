@@ -5,9 +5,8 @@ import (
 	"net/http"
 )
 
-var limiter = rate.NewLimiter(1, 3)
-
-func limit(next http.Handler) http.Handler {
+func limit(next http.Handler, bucketSize int) http.Handler {
+	var limiter = rate.NewLimiter(1, bucketSize)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !limiter.Allow() {
 			http.Error(w, http.StatusText(429), http.StatusTooManyRequests)
