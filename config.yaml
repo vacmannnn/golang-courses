@@ -9,3 +9,6 @@ port:
 
 rate_limit:
   5
+
+token_max_time:
+  60
