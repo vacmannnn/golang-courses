@@ -14,14 +14,16 @@ type server struct {
 	mux          *http.ServeMux
 	users        []userInfo
 	expTokenTime int
+	requests     chan struct{}
 }
 
-func NewMux(ctlg core.Catalog, logger slog.Logger, rateLimit int, expTime int) http.Handler {
+func NewMux(ctlg core.Catalog, logger slog.Logger, rateLimit int, expTime int, concurrencyLimit int) http.Handler {
 	users, err := getUsers("users.json")
 	if err != nil {
 		logger.Error("Failed to load users", "error", err.Error())
 	}
-	myServ := server{ctlg: ctlg, logger: logger, mux: http.NewServeMux(), users: users, expTokenTime: expTime}
+	myServ := server{ctlg: ctlg, logger: logger, mux: http.NewServeMux(), users: users, expTokenTime: expTime,
+		requests: make(chan struct{}, concurrencyLimit)}
 
 	myServ.mux.HandleFunc("GET /pics", myServ.protectedSearch())
 	myServ.mux.HandleFunc("POST /update", myServ.protectedUpdate())

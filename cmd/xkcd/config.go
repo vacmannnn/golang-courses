@@ -8,11 +8,12 @@ import (
 )
 
 type Config struct {
-	SourceUrl    string `yaml:"source_url"`
-	DBFile       string `yaml:"db_file"`
-	Port         int    `yaml:"port"`
-	RateLimit    int    `yaml:"rate_limit"`
-	TokenMaxTime int    `yaml:"token_max_time"`
+	SourceUrl        string `yaml:"source_url"`
+	DBFile           string `yaml:"db_file"`
+	Port             int    `yaml:"port"`
+	RateLimit        int    `yaml:"rate_limit"`
+	TokenMaxTime     int    `yaml:"token_max_time"`
+	ConcurrencyLimit int    `yaml:"concurrency_limit"`
 }
 
 func getConfig(configPath string) (*Config, error) {
