@@ -38,18 +38,20 @@ func getServerConfig(configPath string) (core.ServerConfig, error) {
 	return config, nil
 }
 
-func getFlags() (string, int, slog.Level) {
+func getFlags() (string, string, int, slog.Level) {
 	var configPath string
-	flag.StringVar(&configPath, "c", "config.yaml", "path to config.yml file")
+	flag.StringVar(&configPath, "c", "config.yaml", "path to config file")
 	var port int
 	flag.IntVar(&port, "p", -1, "server port")
 	var showDebugMsg bool
 	flag.BoolVar(&showDebugMsg, "d", false, "show debug messages in log")
+	var serverConfigPath string
+	flag.StringVar(&serverConfigPath, "s", "server_config.yaml", "path to server config file")
 	flag.Parse()
 
 	level := slog.LevelInfo
 	if showDebugMsg {
 		level = slog.LevelDebug
 	}
-	return configPath, port, level
+	return configPath, serverConfigPath, port, level
 }
