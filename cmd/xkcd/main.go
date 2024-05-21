@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	configPath, port, loggerLevel := getFlags()
+	configPath, serverConfPath, port, loggerLevel := getFlags()
 
 	opts := &slog.HandlerOptions{
 		Level: loggerLevel,
@@ -66,7 +66,7 @@ func main() {
 	}
 
 	var ctlg core.Catalog = catalog.NewCatalog(comics, comicsFiller)
-	servConf, err := getServerConfig(configPath)
+	servConf, err := getServerConfig(serverConfPath)
 	if err != nil {
 		// TODO
 		logger.Error(err.Error())
