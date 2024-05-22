@@ -9,27 +9,27 @@ import (
 )
 
 type server struct {
-	ctlg     core.Catalog
-	conf     core.ServerConfig
-	logger   slog.Logger
-	mux      *http.ServeMux
-	users    []userInfo
-	requests chan struct{}
+	ctlg         core.Catalog
+	logger       slog.Logger
+	mux          *http.ServeMux
+	users        []userInfo
+	tokenMaxTime int
+	requests     chan struct{}
 }
 
-func NewMux(ctlg core.Catalog, logger slog.Logger, conf core.ServerConfig) http.Handler {
+func NewMux(ctlg core.Catalog, logger slog.Logger, rateLimit, concurrencyLimit, tokenMaxTime int) http.Handler {
 	users, err := getUsers("users.json")
 	if err != nil {
 		logger.Error("Failed to load users", "error", err.Error())
 	}
-	myServ := server{ctlg: ctlg, logger: logger, mux: http.NewServeMux(), users: users, conf: conf,
-		requests: make(chan struct{}, conf.ConcurrencyLimit)}
+	myServ := server{ctlg: ctlg, logger: logger, mux: http.NewServeMux(), users: users, tokenMaxTime: tokenMaxTime,
+		requests: make(chan struct{}, concurrencyLimit)}
 
 	myServ.mux.HandleFunc("GET /pics", myServ.protectedSearch())
 	myServ.mux.HandleFunc("POST /update", myServ.protectedUpdate())
 	myServ.mux.HandleFunc("POST /login", myServ.login)
 
-	return limit(myServ.mux, conf.RateLimit)
+	return limit(myServ.mux, rateLimit)
 }
 
 const (

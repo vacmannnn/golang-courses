@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	configPath, serverConfPath, port, loggerLevel := getFlags()
+	configPath, port, loggerLevel := getFlags()
 
 	opts := &slog.HandlerOptions{
 		Level: loggerLevel,
@@ -66,12 +66,7 @@ func main() {
 	}
 
 	var ctlg core.Catalog = catalog.NewCatalog(comics, comicsFiller)
-	servConf, err := getServerConfig(serverConfPath)
-	if err != nil {
-		// TODO
-		logger.Error(err.Error())
-	}
-	mux := handler.NewMux(ctlg, *logger, servConf)
+	mux := handler.NewMux(ctlg, *logger, conf.RateLimit, conf.ConcurrencyLimit, conf.TokenMaxTime)
 	portStr := fmt.Sprintf(":%d", port)
 
 	// based on https://stackoverflow.com/questions/39320025/how-to-stop-http-listenandserve

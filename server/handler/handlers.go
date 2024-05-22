@@ -30,7 +30,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 
 	if err == nil {
 		u.role = role
-		tokenString, err := createToken(u, s.conf.TokenMaxTime)
+		tokenString, err := createToken(u, s.tokenMaxTime)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			s.logger.Error("No Username found")
