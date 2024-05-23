@@ -15,7 +15,7 @@ import (
 )
 
 func BenchmarkDiffMethToSearch(b *testing.B) {
-	myDB, _ := database.NewDB("test.json")
+	myDB, _ := database.NewDB("test.json", "/storage/migration")
 
 	comics, _ := myDB.Read()
 	if comics == nil {

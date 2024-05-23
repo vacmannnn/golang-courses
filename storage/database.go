@@ -19,7 +19,7 @@ type DataBase struct {
 }
 
 // NewDB sets path to database
-func NewDB(path string) (*DataBase, error) {
+func NewDB(path string, pathToMigrations string) (*DataBase, error) {
 	err := createFileIfNotExists(path)
 	if err != nil {
 		return nil, err
@@ -28,20 +28,21 @@ func NewDB(path string) (*DataBase, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = runMigrate(db)
+	err = runMigrate(db, pathToMigrations)
 	if err != nil {
 		return nil, err
 	}
 	return &DataBase{pathToDB: path, db: db}, nil
 }
 
-func runMigrate(db *sql.DB) error {
+func runMigrate(db *sql.DB, migrationsDir string) error {
 	driver, err := sqlite3.WithInstance(db, &sqlite3.Config{})
 	if err != nil {
 		return fmt.Errorf("creating sqlite3 db driver failed %s", err)
 	}
 
-	fileSource, err := (&file.File{}).Open("file://storage/migration")
+	dir := fmt.Sprintf("file://%s", migrationsDir)
+	fileSource, err := (&file.File{}).Open(dir)
 	if err != nil {
 		return fmt.Errorf("opening migration file failed %s", err)
 	}
@@ -80,7 +81,7 @@ func createFileIfNotExists(path string) error {
 
 func (d *DataBase) Write(descript core.ComicsDescript, comicsID int) error {
 	keywords := strings.Join(descript.Keywords, " ")
-	_, err := d.db.Exec("insert into comics (url, keywords, comicsID) values ($1, $2, $3)",
+	_, err := d.db.Exec("insert or ignore into comics (url, keywords, comicsID) values ($1, $2, $3)",
 		descript.Url, keywords, comicsID)
 
 	return err
