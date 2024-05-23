@@ -40,7 +40,7 @@ func main() {
 	}
 
 	// read existed DB to simplify downloading
-	myDB, err := database.NewDB(conf.DBFile)
+	myDB, err := database.NewDB(conf.DBFile, "/storage/migration")
 	if err != nil {
 		log.Fatal(err)
 	}

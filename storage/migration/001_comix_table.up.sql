@@ -1,5 +1,7 @@
-CREATE TABLE comics (
-  url TEXT,
-  keywords TEXT,
-  comicsID INTEGER NOT NULL PRIMARY KEY
+CREATE TABLE comics
+(
+    url      TEXT,
+    keywords TEXT,
+    comicsID INTEGER,
+    UNIQUE (comicsID, url, keywords)
 );
