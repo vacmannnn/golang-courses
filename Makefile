@@ -8,6 +8,5 @@ clean:
 	@rm xkcd
 
 test:
-	@go test -v ./... -covermode=count -coverpkg=./... -coverprofile coverage/coverage.out ## TODO: -race
+	@go test ./... -covermode=count -coverpkg=./... -coverprofile coverage/coverage.out ## TODO: -race
 	@go tool cover -html coverage/coverage.out -o coverage/coverage.html
-	@firefox coverage/coverage.html ## TODO: not firefox
