@@ -8,5 +8,13 @@ clean:
 	@rm xkcd
 
 test:
-	@go test ./... -covermode=count -coverpkg=./... -coverprofile coverage/coverage.out ## TODO: -race
+	@go test ./... -v -cover -coverprofile coverage/coverage.out ## TODO: -race
 	@go tool cover -html coverage/coverage.out -o coverage/coverage.html
+
+lint:
+	@golangci-lint run ./...
+
+sec:
+	@trivy fs xkcd-server
+	@govulncheck ./...
+
