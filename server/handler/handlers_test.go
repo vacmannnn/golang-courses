@@ -2,12 +2,11 @@ package handler
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 type catalog struct{}
@@ -29,124 +28,154 @@ func (c *catalog) FindByIndex(input []string) []string {
 
 var logger = slog.New(slog.NewJSONHandler(io.Discard, nil))
 
-func TestMain(m *testing.M) {
-	hndlr := NewMux(&catalog{}, *logger, "../../users.json", 10, 10, 10)
-	go func() {
-		err := http.ListenAndServe("localhost:8080", hndlr)
-		if err != nil {
-			return
-		}
-	}()
-	// wait for server to launch
-	time.Sleep(time.Second * 2)
-	m.Run()
-}
-
 func TestLogin(t *testing.T) {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
+	// set handler and launch server which will be shut down by context
+	hndlr := NewServerHandler(&catalog{}, *logger, "../../users.json", 10, 10, 10)
+	s := httptest.NewServer(hndlr)
+	defer s.Close()
+
+	// send request with admins pass and name
 	var jsonStr = []byte(`{"username":"admin", "password":"admin"}`)
-	req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/login", bytes.NewBuffer(jsonStr))
+	req, err := http.NewRequest(http.MethodPost, s.URL+"/login", bytes.NewBuffer(jsonStr))
 	if err != nil {
 		t.Fatalf("creating request: %v", err)
 	}
-	res, err := client.Do(req)
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("sending request: %v", err)
 	}
 
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(res.Body)
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("unexpected status: got %v", res.Status)
 	}
-	token, err := io.ReadAll(res.Body)
+	_, err = io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("cannot read from response body: %v", err)
 	}
-	// Print the body
-	fmt.Println(string(token))
 }
 
 func TestSearchNotFoundRequest(t *testing.T) {
-	srv := server{ctlg: &catalog{}, logger: *logger, mux: http.NewServeMux(), users: nil, tokenMaxTime: 0, requests: make(chan struct{})}
+	// set handler and launch server which will be shut down by context
+	srv := server{ctlg: &catalog{}, logger: *logger, mux: http.NewServeMux(), users: nil,
+		tokenMaxTime: 0, requests: make(chan struct{})}
 	srv.mux.HandleFunc("GET /pics", func(w http.ResponseWriter, r *http.Request) {
 		srv.searchRequest(w, r)
 	})
-	go func() { http.ListenAndServe("localhost:8070", srv.mux) }()
-	time.Sleep(time.Second * 3)
+	s := httptest.NewServer(srv.mux)
+	defer s.Close()
 
-	res, err := http.Get("http://localhost:8070/pics?search='banana'")
-	if err != nil {
-		t.Fatalf("sending request: %v", err)
+	cases := []struct {
+		name           string
+		searchString   string
+		expectedStatus int
+	}{
+		{
+			name:           "comics won't found",
+			searchString:   "/pics?search='banana'",
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:           "comics will be found",
+			searchString:   "/pics?search='abc'",
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "empty search string",
+			searchString:   "/pics",
+			expectedStatus: http.StatusNotFound,
+		},
 	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// send search request
+			res, err := http.Get(s.URL + tc.searchString)
+			if err != nil {
+				t.Fatalf("sending request: %v", err)
+			}
 
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(res.Body)
-	if res.StatusCode != http.StatusNotFound {
-		t.Errorf("unexpected status: got %v", res.Status)
+			// handle response
+			if res.StatusCode != tc.expectedStatus {
+				t.Errorf("unexpected status: got %v", res.Status)
+			}
+		})
 	}
-	token, err := io.ReadAll(res.Body)
-	if err != nil {
-		t.Fatalf("cannot read from response body: %v", err)
-	}
-	// Print the body
-	fmt.Println(string(token))
-}
-
-func TestSearchRequest(t *testing.T) {
-	srv := server{ctlg: &catalog{}, logger: *logger, mux: http.NewServeMux(), users: nil, tokenMaxTime: 0, requests: make(chan struct{})}
-	srv.mux.HandleFunc("GET /pics", func(w http.ResponseWriter, r *http.Request) {
-		srv.searchRequest(w, r)
-	})
-	go func() { http.ListenAndServe("localhost:8050", srv.mux) }()
-	time.Sleep(time.Second * 3)
-
-	res, err := http.Get("http://localhost:8050/pics?search='abc'")
-	if err != nil {
-		t.Fatalf("sending request: %v", err)
-	}
-
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(res.Body)
-	if res.StatusCode != http.StatusOK {
-		t.Errorf("unexpected status: got %v", res.Status)
-	}
-	token, err := io.ReadAll(res.Body)
-	if err != nil {
-		t.Fatalf("cannot read from response body: %v", err)
-	}
-	// Print the body
-	fmt.Println(string(token))
 }
 
 func TestUpdateRequest(t *testing.T) {
+	// set handler and launch server which will be shut down by context
 	srv := server{ctlg: &catalog{}, logger: *logger, mux: http.NewServeMux(), users: nil, tokenMaxTime: 1, requests: make(chan struct{})}
 	srv.mux.HandleFunc("POST /update", func(w http.ResponseWriter, r *http.Request) {
 		srv.updateRequest(w, r)
 	})
-	go func() { http.ListenAndServe("localhost:8060", srv.mux) }()
-	time.Sleep(time.Second * 3)
+	s := httptest.NewServer(srv.mux)
+	defer s.Close()
 
-	res, err := http.Post("http://localhost:8060/update", "", nil)
+	// send search request to update db
+	res, err := http.Post(s.URL+"/update", "", nil)
 	if err != nil {
 		t.Fatalf("sending request: %v", err)
 	}
 
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(res.Body)
-	if res.StatusCode != http.StatusOK {
-		t.Errorf("unexpected status: got %v", res.Status)
-	}
-	token, err := io.ReadAll(res.Body)
+	// handle response
+	_, err = io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("cannot read from response body: %v", err)
 	}
-	// Print the body
-	fmt.Println(string(token))
+}
+
+func TestAuth(t *testing.T) {
+	srv := server{ctlg: &catalog{}, logger: *logger, mux: http.NewServeMux(), users: nil, tokenMaxTime: 10, requests: make(chan struct{}, 1)}
+	srv.mux.HandleFunc("GET /pics", srv.protectedUpdate())
+	s := httptest.NewServer(srv.mux)
+	defer s.Close()
+
+	cases := []struct {
+		name           string
+		user           userInfo
+		needToken      bool
+		token          string
+		expectedStatus int
+	}{
+		{name: "valid data",
+			user: userInfo{Username: "user",
+				Password: "$2a$10$w6/HvzjDEJa7vgmEGWtXCuz9YkUkcyLMHN547wRhNyUTR0zPIILmK"},
+			needToken:      true,
+			expectedStatus: http.StatusOK,
+		}, {
+			name: "no token",
+			user: userInfo{Username: "user",
+				Password: "$2a$10$w6/HvzjDEJa7vgmEGWtXCuz9YkUkcyLMHN547wRhNyUTR0zPIILmK"},
+			needToken:      false,
+			expectedStatus: http.StatusUnauthorized,
+		}, {
+			name: "incorrect token",
+			user: userInfo{Username: "user",
+				Password: "$2a$10$w6/HvzjDEJa7vgmEGWtXCuz9YkUkcyLMHN547wRhNyUTR0zPIILmK"},
+			needToken:      true,
+			token:          "abc.abc.abc",
+			expectedStatus: http.StatusUnauthorized,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.needToken && tc.token == "" {
+				tc.token, _ = createToken(userInfo{Username: "user",
+					Password: "$2a$10$w6/HvzjDEJa7vgmEGWtXCuz9YkUkcyLMHN547wRhNyUTR0zPIILmK"}, 10)
+			}
+			req, err := http.NewRequest(http.MethodGet, s.URL+"/pics?search='abc'", nil)
+			if err != nil {
+				t.Errorf("creating request: %v", err)
+			}
+			if tc.needToken {
+				req.Header.Set("Authorization", tc.token)
+			}
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Errorf("sending request: %v", err)
+			}
+			if res.StatusCode != tc.expectedStatus {
+				t.Errorf("unexpected response status: %v", res.StatusCode)
+			}
+		})
+	}
 }
