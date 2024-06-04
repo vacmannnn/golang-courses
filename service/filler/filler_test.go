@@ -4,7 +4,6 @@ import (
 	"context"
 	"courses/core"
 	"courses/service/xkcd"
-	"fmt"
 	"io"
 	"log/slog"
 	"testing"
@@ -33,7 +32,6 @@ func TestFiller_FillAllComics(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	fmt.Println(len(comics))
 	if len(comics) == 0 {
 		t.Errorf("comics didn't downloaded")
 	}
