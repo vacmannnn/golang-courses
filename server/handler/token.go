@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var secretKey = []byte("bananchiki") // TODO: config.yaml
+var secretKey = []byte("bananchiki")
 
 func createToken(user userInfo, expTime int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
