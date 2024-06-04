@@ -1,6 +1,9 @@
 package core
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type Config struct {
 	SourceUrl        string `yaml:"source_url"`
@@ -29,6 +32,10 @@ type Catalog interface {
 	FindByIndex([]string) []string
 	GetIndex() map[string][]int
 	UpdateComics() (int, int, error)
+}
+
+type Filler interface {
+	FillMissedComics(ctx context.Context) (map[int]ComicsDescript, error)
 }
 
 const MaxWaitTime = time.Second * 5
