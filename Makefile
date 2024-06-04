@@ -18,3 +18,5 @@ sec:
 	@trivy fs xkcd-server
 	@govulncheck ./...
 
+e2e:
+	./e2e.sh
