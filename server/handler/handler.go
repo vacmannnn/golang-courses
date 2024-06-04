@@ -17,8 +17,9 @@ type server struct {
 	requests     chan struct{}
 }
 
-func NewMux(ctlg core.Catalog, logger slog.Logger, pathToUsers string, rateLimit, concurrencyLimit, tokenMaxTime int) http.Handler {
-	users, err := getUsers(pathToUsers) // TODO: correct path
+func NewServerHandler(ctlg core.Catalog, logger slog.Logger, pathToUsers string,
+	rateLimit, concurrencyLimit, tokenMaxTime int) http.Handler {
+	users, err := getUsers(pathToUsers)
 	if err != nil {
 		logger.Error("Failed to load users", "error", err.Error())
 	}

@@ -20,6 +20,8 @@ import (
 	"time"
 )
 
+// TODO: добавить комменты с поэтапным объяснением, что тут происходит
+
 func main() {
 	configPath, port, loggerLevel := getFlags()
 
@@ -66,7 +68,7 @@ func main() {
 	}
 
 	var ctlg core.Catalog = catalog.NewCatalog(comics, comicsFiller)
-	mux := handler.NewMux(ctlg, *logger, "users.json", conf.RateLimit, conf.ConcurrencyLimit, conf.TokenMaxTime)
+	mux := handler.NewServerHandler(ctlg, *logger, "users.json", conf.RateLimit, conf.ConcurrencyLimit, conf.TokenMaxTime)
 	portStr := fmt.Sprintf(":%d", port)
 
 	// based on https://stackoverflow.com/questions/39320025/how-to-stop-http-listenandserve

@@ -86,7 +86,15 @@ func (s *server) protectHandler(next func(http.ResponseWriter, *http.Request), c
 
 func (s *server) searchRequest(wr http.ResponseWriter, r *http.Request) {
 	comicsKeywords := r.URL.Query().Get("search")
-	// TODO: validate
+	if comicsKeywords == "" {
+		wr.WriteHeader(http.StatusNotFound)
+		_, err := wr.Write([]byte("404 empty search string"))
+		if err != nil {
+			s.logger.Error("writing response for GET /pics", "err", err)
+		}
+		return
+	}
+
 	clearedKeywords := words.StemStringWithClearing(strings.Split(comicsKeywords, " "))
 	res := s.ctlg.FindByIndex(clearedKeywords)
 
