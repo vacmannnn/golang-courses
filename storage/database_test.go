@@ -10,7 +10,6 @@ import (
 func TestDataBase_WriteAndRead(t *testing.T) {
 	comics := make([]core.ComicsDescript, 500)
 	db, err := NewDB("testDB.sql", "migration")
-	defer db.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
