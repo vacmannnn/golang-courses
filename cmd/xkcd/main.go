@@ -67,7 +67,7 @@ func main() {
 		logger.Error(err.Error())
 	}
 
-	var ctlg core.Catalog = catalog.NewCatalog(comics, comicsFiller)
+	var ctlg core.Catalog = catalog.NewCatalog(comics, &comicsFiller)
 	mux := handler.NewServerHandler(ctlg, *logger, "users.json", conf.RateLimit, conf.ConcurrencyLimit, conf.TokenMaxTime)
 	portStr := fmt.Sprintf(":%d", port)
 

@@ -3,7 +3,6 @@ package catalog
 import (
 	"context"
 	"courses/core"
-	"courses/service/filler"
 	"maps"
 	"reflect"
 	"slices"
@@ -13,11 +12,11 @@ import (
 type ComicsCatalog struct {
 	comics map[int]core.ComicsDescript
 	index  map[string][]int
-	filler filler.Filler
+	filler core.Filler
 	mt     sync.Mutex
 }
 
-func NewCatalog(comics map[int]core.ComicsDescript, filler filler.Filler) *ComicsCatalog {
+func NewCatalog(comics map[int]core.ComicsDescript, filler core.Filler) *ComicsCatalog {
 	f := ComicsCatalog{comics: comics, filler: filler}
 	f.buildIndex()
 	return &f
