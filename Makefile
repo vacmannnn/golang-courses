@@ -8,7 +8,7 @@ clean:
 	@rm xkcd
 
 test:
-	@go test ./... -v -cover -coverprofile coverage/coverage.out ## TODO: -race
+	@go test ./... -v -race -cover -coverprofile coverage/coverage.out ## TODO: -race
 	@go tool cover -html coverage/coverage.out -o coverage/coverage.html
 
 lint:
