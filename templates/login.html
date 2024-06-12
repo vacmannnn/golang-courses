@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+<h3>Login</h3>
+<form method="POST">
+    <label>Login</label><br>
+    <input type="text" name="login" /><br><br>
+    <label>Password</label><br>
+    <input type="password" name="password" /><br><br>
+
+    {{ if eq true .ErrorExists }}
+        {{ .ErrorMessage }}<br>
+    {{ end }}
+
+    <input type="submit" value="Send" />
+</form>
+
+</body>
+</html>
