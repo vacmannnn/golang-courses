@@ -18,9 +18,9 @@ type MyData struct {
 	ImageName string
 }
 
+// todo: rename it and in login
 type SearchError struct {
-	ErrorExists  bool
-	ErrorMessage string
+	Message string
 }
 
 // todo: handle nil cookie incognito mode http://localhost:3000/comics?search=%27apple+doctor%27
@@ -28,9 +28,6 @@ func comicsFinder(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("jwtTokenCookie")
 	if err != nil || cookie == nil {
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
-	}
-	if cookie == nil {
-		fmt.Println("nilllll coookiie")
 	}
 
 	var htmlData SearchError
@@ -46,7 +43,7 @@ func comicsFinder(w http.ResponseWriter, r *http.Request) {
 			tmpl.Execute(w, data)
 			return
 		}
-		htmlData.ErrorMessage = "Комиксов не найдено ! Попробуйте еще раз"
+		htmlData.Message = "Comics not found"
 	}
 
 	if r.Method == "POST" {
@@ -62,9 +59,8 @@ func comicsFinder(w http.ResponseWriter, r *http.Request) {
 			log.Println(searchString)
 			http.Redirect(w, r, fmt.Sprintf("/comics?search='%s'", searchString), http.StatusMovedPermanently)
 		}
-		htmlData.ErrorMessage = "Введите непустой текст для поиска комиксов"
+		htmlData.Message = "Enter non-empty string"
 	}
-	htmlData.ErrorExists = htmlData.ErrorMessage != ""
 	tmpl, _ := template.ParseFiles("templates/comics_search.html")
 	tmpl.Execute(w, htmlData)
 }
