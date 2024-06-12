@@ -13,7 +13,6 @@ func main() {
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 	})
 
-	log.Print("Listening...")
 	err := http.ListenAndServe(":3000", mux)
 	if err != nil {
 		log.Fatal(err)

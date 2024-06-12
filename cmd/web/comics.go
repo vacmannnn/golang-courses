@@ -10,16 +10,13 @@ import (
 	"net/url"
 )
 
-// TODO: rename
-
-type MyData struct {
+type ComicsData struct {
 	ID        int
 	URL       string
 	ImageName string
 }
 
-// todo: rename it and in login
-type SearchError struct {
+type SearchMessage struct {
 	Message string
 }
 
@@ -30,17 +27,17 @@ func comicsFinder(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 	}
 
-	var htmlData SearchError
+	var htmlData SearchMessage
 	comicsKeywords := r.URL.Query().Get("search")
-	fmt.Println("keywords in url string - ", comicsKeywords)
 	if comicsKeywords != "" {
 		comicsKeywords = url.QueryEscape(comicsKeywords)
-		// fmt.Println("here", r.Method, comicsKeywords)
-		// todo: handle errors
-		data, _ := sendSearchRequest(comicsKeywords, cookie.Value)
+		data, err := sendSearchRequest(comicsKeywords, cookie.Value)
+		if err != nil {
+			htmlData.Message = "Unexpected problem. Try to search again"
+		}
 		if len(data) > 0 {
 			tmpl, _ := template.ParseFiles("templates/comics_results.html")
-			tmpl.Execute(w, data)
+			_ = tmpl.Execute(w, data)
 			return
 		}
 		htmlData.Message = "Comics not found"
@@ -53,19 +50,16 @@ func comicsFinder(w http.ResponseWriter, r *http.Request) {
 		}
 		searchString := r.FormValue("comicsToSearch")
 		if searchString != "" {
-			fmt.Println("here")
-			log.Println(searchString)
 			searchString = url.QueryEscape(searchString)
-			log.Println(searchString)
 			http.Redirect(w, r, fmt.Sprintf("/comics?search='%s'", searchString), http.StatusMovedPermanently)
 		}
 		htmlData.Message = "Enter non-empty string"
 	}
 	tmpl, _ := template.ParseFiles("templates/comics_search.html")
-	tmpl.Execute(w, htmlData)
+	_ = tmpl.Execute(w, htmlData)
 }
 
-func sendSearchRequest(searchString string, token string) ([]MyData, error) {
+func sendSearchRequest(searchString string, token string) ([]ComicsData, error) {
 	req, err := http.NewRequest(http.MethodGet,
 		fmt.Sprintf("http://localhost:8080/pics?search='%s'", searchString), nil)
 	if err != nil {
@@ -88,10 +82,10 @@ func sendSearchRequest(searchString string, token string) ([]MyData, error) {
 		return nil, err
 	}
 
-	var data []MyData
+	var data []ComicsData
 	for i, v := range searchResult {
 		// name example - https://imgs.xkcd.com/comics/magnet_fishing.png
-		data = append(data, MyData{ID: i + 1, URL: v, ImageName: v[29 : len(v)-4]})
+		data = append(data, ComicsData{ID: i + 1, URL: v, ImageName: v[29 : len(v)-4]})
 	}
 	return data, nil
 }
