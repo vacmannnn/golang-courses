@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Find comics</title>
+</head>
+<body>
+{{range . }}
+<tr>
+    <div class="column">
+        <div style="text-align: center;">
+            <img src={{.URL}}></div>
+        <div style="text-align: center;"><a href={{.URL}} target="_blank">{{.ImageName}}</a></div>
+    </div>
+</tr>
+{{end}}
+<div style="text-align: center;"><a href="http://localhost:3000/comics">Back to search</a></td></div>
+</body>
+</html>

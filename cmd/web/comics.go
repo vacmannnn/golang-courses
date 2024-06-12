@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -11,63 +10,43 @@ import (
 	"net/url"
 )
 
+// TODO: rename
+
 type MyData struct {
-	ID  int
-	URL string
+	ID        int
+	URL       string
+	ImageName string
 }
 
+type SearchError struct {
+	ErrorExists  bool
+	ErrorMessage string
+}
+
+// todo: handle nil cookie incognito mode http://localhost:3000/comics?search=%27apple+doctor%27
 func comicsFinder(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("jwtTokenCookie")
-	if err != nil {
-		// TODO: redirect to login
-		switch {
-		case errors.Is(err, http.ErrNoCookie):
-			http.Error(w, "cookie not found", http.StatusBadRequest)
-		default:
-			log.Println(err)
-			http.Error(w, "server error", http.StatusInternalServerError)
-		}
+	if err != nil || cookie == nil {
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+	}
+	if cookie == nil {
+		fmt.Println("nilllll coookiie")
 	}
 
-	if cookie != nil {
-		fmt.Println(cookie.Value)
-	}
-
+	var htmlData SearchError
 	comicsKeywords := r.URL.Query().Get("search")
-	fmt.Println(comicsKeywords)
+	fmt.Println("keywords in url string - ", comicsKeywords)
 	if comicsKeywords != "" {
 		comicsKeywords = url.QueryEscape(comicsKeywords)
-		fmt.Println("here", r.Method, comicsKeywords)
-		req, err := http.NewRequest(http.MethodGet,
-			fmt.Sprintf("http://localhost:8080/pics?search='%s'", comicsKeywords), nil)
-		if err != nil {
-			log.Printf("creating request: %v\n", err)
-		}
-		req.Header.Set("Authorization", cookie.Value)
-
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
+		// fmt.Println("here", r.Method, comicsKeywords)
+		// todo: handle errors
+		data, _ := sendSearchRequest(comicsKeywords, cookie.Value)
+		if len(data) > 0 {
+			tmpl, _ := template.ParseFiles("templates/comics_results.html")
+			tmpl.Execute(w, data)
 			return
 		}
-		str, _ := io.ReadAll(res.Body)
-
-		searchResult := make([]string, 0, 10)
-		err = json.Unmarshal(str, &searchResult)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		fmt.Println(searchResult)
-
-		var data []MyData
-
-		for i, v := range searchResult {
-			data = append(data, MyData{ID: i + 1, URL: v})
-		}
-		fmt.Println(data)
-		tmpl, _ := template.ParseFiles("templates/index.html")
-		tmpl.Execute(w, data)
-		return
+		htmlData.ErrorMessage = "Комиксов не найдено ! Попробуйте еще раз"
 	}
 
 	if r.Method == "POST" {
@@ -76,11 +55,47 @@ func comicsFinder(w http.ResponseWriter, r *http.Request) {
 			log.Println(err)
 		}
 		searchString := r.FormValue("comicsToSearch")
-		log.Println(searchString)
-		searchString = url.QueryEscape(searchString)
-		log.Println(searchString)
-		http.Redirect(w, r, fmt.Sprintf("/comics?search='%s'", searchString), http.StatusMovedPermanently)
-	} else {
-		http.ServeFile(w, r, "templates/comics.html")
+		if searchString != "" {
+			fmt.Println("here")
+			log.Println(searchString)
+			searchString = url.QueryEscape(searchString)
+			log.Println(searchString)
+			http.Redirect(w, r, fmt.Sprintf("/comics?search='%s'", searchString), http.StatusMovedPermanently)
+		}
+		htmlData.ErrorMessage = "Введите непустой текст для поиска комиксов"
 	}
+	htmlData.ErrorExists = htmlData.ErrorMessage != ""
+	tmpl, _ := template.ParseFiles("templates/comics_search.html")
+	tmpl.Execute(w, htmlData)
+}
+
+func sendSearchRequest(searchString string, token string) ([]MyData, error) {
+	req, err := http.NewRequest(http.MethodGet,
+		fmt.Sprintf("http://localhost:8080/pics?search='%s'", searchString), nil)
+	if err != nil {
+		log.Printf("creating request: %v\n", err)
+		return nil, err
+	}
+	req.Header.Set("Authorization", token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("sending request: %v\n", err)
+		return nil, err
+	}
+	str, _ := io.ReadAll(res.Body)
+
+	searchResult := make([]string, 0, 10)
+	err = json.Unmarshal(str, &searchResult)
+	if err != nil {
+		log.Printf("unmarshalling result: %v\n", err)
+		return nil, err
+	}
+
+	var data []MyData
+	for i, v := range searchResult {
+		// name example - https://imgs.xkcd.com/comics/magnet_fishing.png
+		data = append(data, MyData{ID: i + 1, URL: v, ImageName: v[29 : len(v)-4]})
+	}
+	return data, nil
 }

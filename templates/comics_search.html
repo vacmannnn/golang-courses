@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Find comics</title>
+</head>
+<body>
+<h3>Find comics</h3>
+<form method="POST">
+    <label>Write text to search comics</label><br>
+    <input type="text" name="comicsToSearch" /><br><br>
+    {{ if eq true .ErrorExists }}
+        {{ .ErrorMessage }}<br>
+    {{ end }}
+    <input type="submit" value="Send" />
+</form>
+</body>
+</html>
