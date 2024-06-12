@@ -10,12 +10,11 @@ import (
 )
 
 type LoginError struct {
-	ErrorExists  bool
-	ErrorMessage string
+	Message string
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
-	var data LoginError
+	data := LoginError{Message: "Enter your login credentials"}
 
 	if r.Method == "POST" {
 		err := r.ParseForm()
@@ -26,7 +25,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		pass := r.FormValue("password")
 
 		if login == "" || pass == "" {
-			data.ErrorMessage = "Введите логин и пароль."
+			data.Message = "Server currently unable. Try to login again."
 			goto executeTemplate
 		}
 
@@ -34,17 +33,17 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/login", bytes.NewBuffer(jsonStr))
 		if err != nil {
 			log.Printf("creating request: %v\n", err)
-			data.ErrorMessage = "Попробуйте ввести пароль еще раз."
+			data.Message = "Server currently unable. Try to login again."
 		}
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
 			log.Printf("sending request: %v\n", err)
-			data.ErrorMessage = "Попробуйте ввести пароль еще раз."
+			data.Message = "Server currently unable. Try to login again."
 			goto executeTemplate
 		}
 		str, _ := io.ReadAll(res.Body)
 		if res.StatusCode != http.StatusOK {
-			data.ErrorMessage = "Неправильный логин или пароль."
+			data.Message = "Wrong login or password."
 			goto executeTemplate
 		}
 
@@ -58,7 +57,6 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 executeTemplate:
 	tmpl, _ := template.ParseFiles("templates/login.html")
-	data.ErrorExists = data.ErrorMessage != ""
 	err := tmpl.Execute(w, data)
 	if err != nil {
 		log.Println("executing login template:", err)
