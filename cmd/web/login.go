@@ -9,12 +9,12 @@ import (
 	"net/http"
 )
 
-type LoginError struct {
+type LoginMessage struct {
 	Message string
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
-	data := LoginError{Message: "Enter your login credentials"}
+	data := LoginMessage{Message: "Enter your login credentials"}
 
 	if r.Method == "POST" {
 		err := r.ParseForm()
