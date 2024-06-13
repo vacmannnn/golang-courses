@@ -102,15 +102,16 @@ func (f *Filler) worker(comicsIDChan <-chan int, results chan<- comicsDescriptWi
 		f.logger.Info("working on comics", "id", comID)
 		mt.Lock()
 		if f.comics[comID].Keywords == nil {
+			mt.Unlock()
 			descript, id, err := f.downloader.GetComicsFromID(comID)
 			if err != nil {
 				f.logger.Debug(err.Error(), "comics ID", id)
 				results <- comicsDescriptWithID{id: id}
-				mt.Unlock()
 				continue
 			}
 			descript.Keywords = words.StemStringWithClearing(descript.Keywords)
 			results <- comicsDescriptWithID{id: id, ComicsDescript: descript, isDownloaded: true}
+			mt.Lock()
 			f.comics[id] = descript
 			mt.Unlock()
 			continue
