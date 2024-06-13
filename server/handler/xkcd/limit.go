@@ -1,4 +1,4 @@
-package handler
+package xkcd
 
 import (
 	"golang.org/x/time/rate"

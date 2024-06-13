@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"courses/core"
-	"courses/server/handler"
+	handler "courses/server/handler/xkcd"
 	"courses/service/catalog"
 	"courses/service/filler"
 	"courses/service/xkcd"

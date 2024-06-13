@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"encoding/json"
@@ -21,7 +21,7 @@ type SearchMessage struct {
 }
 
 // todo: handle nil cookie incognito mode http://localhost:3000/comics?search=%27apple+doctor%27
-func comicsFinder(w http.ResponseWriter, r *http.Request) {
+func ComicsFinder(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("jwtTokenCookie")
 	if err != nil || cookie == nil {
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
