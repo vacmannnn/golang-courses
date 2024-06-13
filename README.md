@@ -2,6 +2,8 @@
 
 A tool to search comics from [xkcd](https://xkcd.com/).
 
+https://github.com/vacmannnn/xkcd-searcher/assets/111463436/c4cdb73d-8aba-4bd0-aa8d-024b661cdc93
+
 ## Usage
 
 1. Download project:
