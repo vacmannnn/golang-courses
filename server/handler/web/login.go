@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ type LoginMessage struct {
 	Message string
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	data := LoginMessage{Message: "Enter your login credentials"}
 
 	if r.Method == "POST" {
