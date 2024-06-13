@@ -30,7 +30,7 @@ var logger = slog.New(slog.NewJSONHandler(io.Discard, nil))
 
 func TestLogin(t *testing.T) {
 	// set handler and launch server which will be shut down by context
-	hndlr := NewServerHandler(&catalog{}, *logger, "../../users.json", 10, 10, 10)
+	hndlr := NewServerHandler(&catalog{}, *logger, "../../../users.json", 10, 10, 10)
 	s := httptest.NewServer(hndlr)
 	defer s.Close()
 
